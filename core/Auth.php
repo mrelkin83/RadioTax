@@ -99,6 +99,15 @@ final class Auth
         }
     }
 
+    /** Como verificarCsrf(), pero para páginas HTML: no responde JSON, solo informa si el token es válido. */
+    public static function csrfValido(): bool
+    {
+        self::iniciar();
+        $token = (string) ($_POST['csrf'] ?? '');
+
+        return isset($_SESSION['csrf']) && hash_equals((string) $_SESSION['csrf'], $token);
+    }
+
     public static function tokenCsrf(): string
     {
         self::iniciar();

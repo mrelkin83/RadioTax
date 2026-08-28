@@ -23,6 +23,9 @@ $csrf = Auth::tokenCsrf();
     <h1 class="text-lg font-semibold">Centro de transmisión</h1>
     <div class="flex items-center gap-4 text-sm text-slate-400">
       <span><?= htmlspecialchars($usuario['nombre'], ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars($usuario['rol'], ENT_QUOTES, 'UTF-8') ?></span>
+      <?php if ($usuario['rol'] === 'ADMIN'): ?>
+        <a href="/modules/admin/vehiculos.php" class="hover:text-slate-200">Administración</a>
+      <?php endif; ?>
       <a href="/modules/panel/logout.php" class="text-red-400 hover:text-red-300">Salir</a>
     </div>
   </header>

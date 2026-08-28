@@ -30,6 +30,16 @@ No depende del motor, así que se construyó en paralelo mientras el bloqueo de 
 - **Probado también en navegador real** (Playwright): login, cancelar con motivo, solicitud manual vía modal, seleccionar vehículo y asignar, cerrar sesión — todo verificado visualmente y sin errores de consola (solo el warning esperado de Tailwind CDN). Esta prueba encontró un bug real: el polling automático (`replaceChildren` cada 4 s) le borraba al operador un motivo a medio escribir o una selección a medio hacer. Corregido en `assets/panel.js`: el refresco automático ahora se salta el ciclo si el foco está en un `input`/`select`/`textarea` dentro de `#cola` o `#flota` (`usuarioEstaEditando()`); las acciones (asignar, cancelar, etc.) siguen refrescando de inmediato con `refrescar({ forzar: true })`.
 - `TaxiAdapter::crearTransaccion()` ahora acepta un `$actorTipo` (default `IA`) para que las solicitudes creadas manualmente por el panel se atribuyan a `RADIOOPERADOR`, no a `IA`.
 
+## Panel administrativo (mínimo) — `modules/admin/`
+
+Lo estrictamente necesario para que el Centro de Transmisión sea usable sin tocar SQL a mano: alta y edición de vehículos y conductores. Solo accesible con `rol=ADMIN` (`modules/admin/_bootstrap.php`, `403` para `RADIOOPERADOR`).
+
+- `modules/admin/vehiculos.php`: crear vehículo (número interno, placa, tipo), editar los mismos campos. El estado del vehículo se cambia desde el Centro de Transmisión, no aquí (evita dos sitios para la misma acción operativa).
+- `modules/admin/conductores.php`: crear/editar conductor (nombre, documento, teléfono, WhatsApp opcional, estado ACTIVO/INACTIVO).
+- Patrón *Post-Redirect-Get* (formularios HTML normales, sin JS), con CSRF (`Auth::csrfValido()`) y salida escapada con `htmlspecialchars`.
+- **Probado en navegador real**: crear vehículo, editarlo, crear conductor, y confirmar que un usuario `RADIOOPERADOR` no ve el enlace "Administración" y recibe `403` si entra por URL directa.
+- Explícitamente fuera de este alcance: empresas, líneas, agentes de IA, configuración de despacho, reportes — son parte del "panel administrativo aparte" de §8, no se construyeron porque el gap real detectado era solo flota/conductores.
+
 ### No hecho / fuera de alcance de esta sesión
 
 - Notificar al cliente por WhatsApp tras asignar ("el bot informa al cliente", §7) — requiere el motor conversacional.

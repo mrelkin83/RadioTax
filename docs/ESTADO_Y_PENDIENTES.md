@@ -1,6 +1,6 @@
 # Estado y pendientes
 
-Última actualización: 2026-08-28 (sesión de arranque, Fase 0 — parte 3: panel del radiooperador).
+Última actualización: 2026-08-28 (sesión de arranque, Fase 0 — parte 4: panel admin mínimo, límite de lo avanzable sin el motor).
 
 ## Fase actual: FASE 0 — Cimientos (en progreso, no cerrada)
 
@@ -46,7 +46,23 @@ Todo lo que dependa exclusivamente del `TaxiAdapter`/esquema `tx_*` ya construid
 
 **Credenciales de desarrollo actuales** (base `taxiapp` local): usuario `operador1`, empresa "Radio Tax" (id 1), un vehículo (`084`/`ABC084`) y un conductor (`Carlos Perez`) de prueba ya insertados manualmente. La clave no se documenta aquí (no se vuelve a mostrar tras `seed_dev.php`); si se pierde, hay que crear otro usuario con el script o resetear la clave por SQL.
 
-Pendiente de este pedazo: notificar al cliente por WhatsApp tras asignar (necesita el motor), y el panel administrativo (empresas/líneas/agentes/vehículos/conductores/reportes) que es "aparte" del Centro de Transmisión según §8 — no se construyó todavía porque no era lo pedido esta sesión.
+Pendiente de este pedazo: notificar al cliente por WhatsApp tras asignar (necesita el motor).
+
+### Panel administrativo mínimo — construido esta sesión
+
+`modules/admin/` (solo `rol=ADMIN`, `403` para radiooperador): alta y edición de vehículos y conductores, probado en navegador incluyendo el control de acceso. Cierra el gap real: antes de esto, la única forma de dar de alta un vehículo o conductor era `INSERT` directo por SQL. Empresas, líneas, agentes de IA, configuración de despacho y reportes siguen sin panel (no eran el gap urgente).
+
+### Límite de lo que se puede "finalizar" sin el motor
+
+Con esto, **todo lo de Capa 4 (Centro de Transmisión + administración mínima) que no depende de `elkinlinan/whatsapp-ai-engine` está construido y probado en navegador real**: login, cola de solicitudes, tablero de flota, asignar, cancelar, abrir/cerrar turno, cambiar estado de vehículo, solicitud manual, alta/edición de vehículos y conductores, control de acceso por rol.
+
+Lo que queda pendiente **requiere el motor y no se puede simular de forma útil**:
+- Capa 2 completa: el agente de IA que conversa por WhatsApp, identifica al cliente, recopila los datos y llama a las herramientas del §5.4.
+- Notificar al cliente por WhatsApp tras una asignación (§7, modo híbrido).
+- El propio `TaxiAdapter implements DomainAdapter` formal y las 49 pruebas del contrato del paquete (criterio de "hecho" de Fase 0, §13).
+- Fase 4 completa (GPS, app del conductor, modo automático).
+
+**Esta sesión llegó al límite de lo avanzable sin una decisión del usuario sobre el origen del motor.** Seguir "hasta finalizar" el proyecto completo requiere retomar el punto 1 de la lista de pendientes: de dónde sale `elkinlinan/whatsapp-ai-engine`.
 
 ### Decisiones tomadas que vale la pena recordar
 

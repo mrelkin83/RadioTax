@@ -14,3 +14,8 @@
 - Toda la API exige sesión (`Auth::requerirSesionApi()` → `401` si no hay sesión) y filtra cada consulta por `empresa_id` de la sesión — un radiooperador nunca ve datos de otra empresa.
 - XSS: `assets/panel.js` construye el DOM con `textContent`/`createElement`, nunca `innerHTML`, para todo dato que viene del cliente (dirección, observaciones, nombre) — regla §14.4 explícita sobre la cola del radiooperador.
 - Sin auto-registro de usuarios del panel: se crean con `database/seed_dev.php` (script de servidor, no expuesto por HTTP).
+
+## Panel administrativo (`modules/admin/`)
+
+- Control de acceso por rol: `modules/admin/_bootstrap.php` exige sesión (como el resto del panel) **y** `rol=ADMIN`; un `RADIOOPERADOR` recibe `403` tanto por navegación como por URL directa (probado en navegador).
+- Mismos formularios HTML con CSRF (`Auth::csrfValido()`) y salida escapada (`htmlspecialchars`) que el resto del panel.
