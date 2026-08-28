@@ -29,14 +29,14 @@ foreach ($archivos as $ruta) {
 
     echo "Aplicando {$nombre}...\n";
 
-    $pdo->beginTransaction();
+    // Sin transacción: cada CREATE TABLE hace commit implícito en MySQL,
+    // así que envolver el DDL en beginTransaction()/commit() es inútil
+    // (y rompe rollBack() al no haber transacción activa que revertir).
     try {
         $pdo->exec((string) file_get_contents($ruta));
         $sentencia = $pdo->prepare('INSERT INTO tx_migraciones (archivo) VALUES (:archivo)');
         $sentencia->execute(['archivo' => $nombre]);
-        $pdo->commit();
     } catch (\Throwable $e) {
-        $pdo->rollBack();
         fwrite(STDERR, "Error en {$nombre}: {$e->getMessage()}\n");
         exit(1);
     }

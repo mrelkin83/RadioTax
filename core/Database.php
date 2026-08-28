@@ -33,6 +33,8 @@ final class Database
 
     private static function conectar(): PDO
     {
+        Env::cargar();
+
         $host = getenv('DB_HOST') ?: '127.0.0.1';
         $puerto = getenv('DB_PORT') ?: '3306';
         $base = getenv('DB_DATABASE') ?: 'taxiapp';

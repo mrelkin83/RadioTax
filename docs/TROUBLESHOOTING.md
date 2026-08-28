@@ -19,6 +19,10 @@ $phpExe = "C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe"
 
 `composer.phar` vive en `C:\laragon\bin\composer\composer.phar` pero no está en el PATH. Invocar con el `php.exe` real: `& $phpExe C:\laragon\bin\composer\composer.phar <comando>`, ejecutado desde el directorio del proyecto.
 
+## `database/migrate.php` lanza "There is no active transaction" en `rollBack()`
+
+MySQL hace **commit implícito** en cada sentencia DDL (`CREATE TABLE`, etc.). Si el runner envuelve el DDL en `beginTransaction()`/`commit()`, el `commit()` falla porque la transacción ya terminó sola, y el `catch` que intenta `rollBack()` lanza una segunda excepción sin capturar. `database/migrate.php` ya no usa transacciones alrededor del DDL por esto — si vuelves a ver este error, revisa que no se haya reintroducido ese patrón.
+
 ## `tests/prueba.php` falla al crear la base temporal
 
 Verifica que el usuario de `DB_USERNAME`/`DB_PASSWORD` en `.env` tenga privilegios `CREATE`/`DROP` sobre bases de datos (no solo sobre `taxiapp`). En Laragon con `root` sin clave suele bastar.

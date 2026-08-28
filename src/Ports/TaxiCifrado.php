@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace TaxiApp\Ports;
 
 use RuntimeException;
+use TaxiApp\Core\Env;
 
 /**
  * Pendiente: conformar al SecretPort real del motor. Hoy cifra/descifra
@@ -17,6 +18,7 @@ final class TaxiCifrado
 
     public function __construct(?string $llave = null)
     {
+        Env::cargar();
         $llave ??= getenv('APP_SECRET_KEY') ?: '';
         if ($llave === '') {
             throw new RuntimeException('APP_SECRET_KEY no configurada.');

@@ -1,6 +1,6 @@
 # Estado y pendientes
 
-Última actualización: 2026-08-28 (sesión de arranque, Fase 0).
+Última actualización: 2026-08-28 (sesión de arranque, Fase 0 — parte 2).
 
 ## Fase actual: FASE 0 — Cimientos (en progreso, no cerrada)
 
@@ -17,22 +17,28 @@
 
 ### Hecho en esta sesión
 
-- Estructura del proyecto, `git init`, `composer.json`, `.gitignore`, `.env.example`.
-- `core/Database.php`, `core/BaseModel.php`.
+- Estructura del proyecto, `git init`, `composer.json`, `.gitignore`, `.env.example`. Commit raíz `d435ecb`.
+- `core/Database.php`, `core/BaseModel.php`, `core/Env.php` (loader mínimo de `.env`, sin dependencias).
 - 13 migraciones idempotentes del esquema `tx_*` v1 + runner `database/migrate.php`.
 - Puertos placeholder: `TaxiDb`, `TaxiCifrado`, `TaxiAlmacen`, `TaxiTenant`, `PesosColombianos`.
 - Capacidades: `SoportaDireccionesFrecuentes`, `SoportaDespachoOperativo`.
 - `TaxiAdapter` completo (9 métodos del contrato + 2 capacidades) con lógica real contra `tx_*`.
-- Suite `tests/prueba.php` (E2E contra base temporal, se autodestruye).
+- Suite `tests/prueba.php` (E2E contra base temporal, se autodestruye) — verde.
+- `.env` real creado y **base de desarrollo `taxiapp` migrada de punta a punta** (`php database/migrate.php`, 13 tablas + `tx_migraciones`), confirmado idempotente en una segunda corrida.
+- Bug encontrado y corregido: `migrate.php` envolvía el DDL en una transacción PDO; MySQL hace commit implícito en `CREATE TABLE`, lo que rompía `rollBack()`. Ver `TROUBLESHOOTING.md`.
 - Documentación base en `docs/`.
 
 ### Próximos pasos (en orden)
 
-1. **Decisión pendiente del usuario**: origen de `elkinlinan/whatsapp-ai-engine` (VCS privado / path local / aún por crear). Sin esto no se puede avanzar el resto de Fase 0.
+1. **Decisión pendiente del usuario**: origen de `elkinlinan/whatsapp-ai-engine` (VCS privado / path local / aún por crear). El usuario confirmó que aún no existe. Sin esto no se puede cerrar Fase 0 del todo.
 2. Cuando el paquete exista: agregar `repositories` + `require` en `composer.json`, `composer install`, hacer que `TaxiAdapter implements DomainAdapter`, ajustar firmas si difieren del mapeo documentado en §5.2.
-3. Configurar `.env` real (copiar de `.env.example`) y correr `php database/migrate.php` contra la base de desarrollo.
-4. Correr `php tests/prueba.php` para confirmar que el adaptador sigue en verde.
-5. Solo entonces: cerrar Fase 0 y arrancar Fase 1 (MVP conversacional + despacho híbrido/manual).
+3. ~~Configurar `.env` real y correr `php database/migrate.php` contra la base de desarrollo.~~ **Hecho.**
+4. ~~Correr `php tests/prueba.php` para confirmar que el adaptador sigue en verde.~~ **Hecho, en verde.**
+5. Solo cuando el motor exista: cerrar Fase 0 y arrancar Fase 1 (MVP conversacional + despacho híbrido/manual).
+
+### Qué se puede avanzar mientras el motor no exista
+
+Todo lo que dependa exclusivamente del `TaxiAdapter`/esquema `tx_*` ya construidos, o del panel del radiooperador (TailwindCSS + JS vanilla, Capa 4 de §4), que no necesita el motor para su UI ni para las acciones manuales/CRUD de flota y turnos. Lo que sigue bloqueado: cualquier cosa de Capa 2 (agentes de IA, herramientas del §5.4, `AiOrchestrator`).
 
 ### Decisiones tomadas que vale la pena recordar
 
