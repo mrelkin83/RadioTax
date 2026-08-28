@@ -15,6 +15,14 @@
 - XSS: `assets/panel.js` construye el DOM con `textContent`/`createElement`, nunca `innerHTML`, para todo dato que viene del cliente (dirección, observaciones, nombre) — regla §14.4 explícita sobre la cola del radiooperador.
 - Sin auto-registro de usuarios del panel: se crean con `database/seed_dev.php` (script de servidor, no expuesto por HTTP).
 
+## Webhook (`modules/webhook/mensajes.php`)
+
+- Token de webhook de 64 hex (32 bytes aleatorios), guardado como SHA-256 en `wa_config.webhook_token_hash` — nunca en claro. Token inválido o que no casa con ninguna empresa → `404` seco, sin cuerpo, sin distinguir "no existe" de "está mal formado" (evita dar pistas a quien intente adivinarlo).
+- Segunda verificación: la apikey que manda Evolution en la cabecera (`apikey`/`X-Api-Key`) se compara con `hash_equals()` contra la guardada — si no coincide, también `404`.
+- Sin sesión ni CSRF (`session_abort()` al entrar): un webhook no trae cookies ni token CSRF, y no tiene sentido pedírselos.
+- Secretos (`evolution_apikey`, `llm_api_key`, ...) cifrados con `TaxiCifrado` antes de guardarse (`WaConfig::guardar()` del motor); nunca se devuelven al frontend (`WaConfig::paraFrontend()` solo informa si hay uno guardado, no cuál es).
+- Idempotencia real: `wa_mensajes.message_id_externo` es `UNIQUE` — un webhook reintentado por Evolution choca ahí y se descarta sin reprocesar. Probado con curl reenviando el mismo `message_id`.
+
 ## Panel administrativo (`modules/admin/`)
 
 - Control de acceso por rol: `modules/admin/_bootstrap.php` exige sesión (como el resto del panel) **y** `rol=ADMIN`; un `RADIOOPERADOR` recibe `403` tanto por navegación como por URL directa (probado en navegador).

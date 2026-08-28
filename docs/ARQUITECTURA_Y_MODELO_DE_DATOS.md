@@ -63,6 +63,30 @@ La tabla del §5.2 del system prompt maestro describe la intención, pero las fi
 
 `TaxiTenant implements TenantPort` se instancia **por request**, ya resuelta la empresa (hoy a mano; cuando exista el webhook de Capa 1, `TaxiTenant::resolverPorTokenWebhook()` lo hace). `scopeFila()` devuelve `['columna' => 'empresa_id', 'valor' => N]` — TAXIS es "una base, una columna", el mismo patrón que MayTech POS, no el de ControlBarMax (una base por negocio). Los métodos de `TaxiAdapter` que necesitan la empresa activa la piden con `Engine::negocio()->id()`, no por parámetro.
 
+## Capa 1 + Capa 2: el webhook real (Fase 1)
+
+### Las tablas `wa_*` no traen migración propia
+
+El motor no incluye sus propias migraciones — cada proyecto consumidor escribe la suya (confirmado: ni `Control_BarMax` ni `maytech` tienen SQL dentro de `packages/whatsapp-engine/`, solo clases PHP que asumen el esquema existe). Las migraciones `0015`-`0019` (`wa_config`, `wa_agentes`, `wa_conversaciones`, `wa_mensajes`, `wa_eventos`) se adaptaron de la versión mono-tenant de `Control_BarMax`, agregándoles `empresa_id` donde el motor lo necesita — confirmado grep por grep contra `Scope::y()`/`Scope::paraInsert()` en todo `packages/whatsapp-engine/src/`, no supuesto: `wa_config`, `wa_agentes`, `wa_conversaciones` y `wa_eventos` lo usan; `wa_mensajes` no (siempre se filtra por `conversacion_id`, ya acotada).
+
+**Nombres de columna**: el motor consulta estas tablas con SQL propio hardcodeado (`created_at`, no `creado_en`) — a diferencia de las tablas `tx_*` (propias de la plataforma, con su propia convención), las `wa_*` tienen que respetar exactamente los nombres que el motor espera. Primer intento de esta sesión los escribió con la convención `tx_*` por error; se corrigió tras `grep` contra el código real del motor.
+
+No se migraron `wa_stock`, `wa_menu_dia`, `wa_pedidos`, `wa_pagos`, `wa_modelos` — son específicas de negocios de producto+cantidad (`wa_pedidos`/`wa_pagos`) o mejoras no esenciales para el MVP (`wa_modelos`, descubrimiento de modelos nuevos). TAXI no las necesita: sus herramientas van por `SoportaHerramientasPersonalizadas`, no por el `crear_pedido` que las usa.
+
+### Multi-empresa en el webhook: el patrón de MayTech, no el del motor
+
+`WaConfig::resolverPorToken()` (dentro del motor) asume "una base por negocio" — usa una tabla maestra `wa_instancias` y cambia de base de datos física. **No sirve para TAXIS**, que es "una base, una columna". Se investigó cómo lo resolvió `maytech` en producción (`modules/whatsapp/WhatsappWebhookController.php::empresaDelToken()`): consulta `wa_config` directo por `webhook_token_hash` en la base compartida, sin pasar por la función del motor. `modules/webhook/mensajes.php` sigue el mismo patrón exacto.
+
+- `core/ConectorMotor.php`: equivalente a `waConectarMotor()` de MayTech — arranca `Engine::arrancar()` con la empresa ya resuelta, explícita (nunca "la actual": un webhook llega sin sesión).
+- `modules/webhook/mensajes.php`: mismo orden que el controlador de MayTech — resolver empresa → conectar motor → deduplicar → responder 200 → procesar. **v1 solo procesa texto** (ni audio ni imagen): STT/TTS/Visión del motor necesitan credenciales de proveedor (ElevenLabs/Piper/Whisper) que este proyecto no tiene todavía.
+- `modules/admin/whatsapp.php`: configura `wa_config` por empresa (proveedor LLM, Evolution, token del webhook) usando `WaConfig::guardar()`/`regenerarWebhookToken()` del motor tal cual — no se reimplementó nada.
+
+### Probado de punta a punta, con una salvedad
+
+Se simuló un payload de Evolution real contra `modules/webhook/mensajes.php` con una clave de Anthropic **inventada**: la llamada real a la API de Anthropic la rechazó (`invalid x-api-key`), confirmando que `LlmProviderManager`/`AnthropicAdapter` están bien conectados. El fallo se manejó con gracia (mensaje de error al cliente, `HumanHandoff` a una persona, todo en `wa_eventos`). Confirmado también: token inválido → 404 seco; motor apagado → 200 ignorado sin tocar nada; mismo `message_id` dos veces → deduplicado, cero filas nuevas.
+
+**Lo único que no se pudo probar es la inteligencia real de la conversación** (que el agente entienda "necesito un taxi", pida recogida/destino, y llame a `registrar_solicitud`) — eso exige una clave de API válida (Anthropic/Gemini/OpenAI) y, para probarlo con WhatsApp de verdad, una instancia real de Evolution API conectada a un número. Ninguna de las dos existe todavía en este proyecto.
+
 ## Pendiente explícito
 
 Ver `docs/ESTADO_Y_PENDIENTES.md`.

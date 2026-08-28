@@ -43,9 +43,20 @@ Lo estrictamente necesario para que el Centro de Transmisión sea usable sin toc
 - `modules/admin/vehiculos.php`, `modules/admin/conductores.php`: formularios HTML clásicos (Post-Redirect-Get), CSRF, salida escapada.
 - Explícitamente fuera de este alcance: empresas, líneas, agentes de IA, configuración de despacho, reportes — son parte del "panel administrativo aparte" de §8.
 
-## No hecho / fuera de alcance de esta sesión
+## Fase 1 — Capa 1 (webhook) + Capa 2 (agente conectado)
 
-- **Capa 1 y Capa 2 reales**: el webhook de Evolution API, `AiOrchestrator` recibiendo mensajes de WhatsApp de verdad, `AgentManager`, el prompt de 9 capas. `tests/prueba.php` prueba el motor y el adaptador con datos de laboratorio, no una conversación real.
-- Notificar al cliente por WhatsApp tras asignar (§7) — Fase 2.
-- Panel administrativo completo (empresas, líneas, agentes de IA, reportes) — Fase 3.
+- Migraciones `0015`-`0019`: esquema `wa_*` (del motor, no de la plataforma) adaptado a multi-empresa por columna — ver `ARQUITECTURA_Y_MODELO_DE_DATOS.md` para el porqué de cada decisión.
+- `core/ConectorMotor.php`: arranca `Engine::arrancar()` para una empresa concreta (equivalente a `waConectarMotor()` de MayTech).
+- `modules/webhook/mensajes.php`: el borde del motor. Resuelve la empresa por el token de la URL (consultando `wa_config` directo, no `WaConfig::resolverPorToken()` del motor — esa función asume "una base por negocio"), deduplica, responde 200 rápido, procesa. Solo texto en v1.
+- `modules/admin/whatsapp.php`: configura proveedor LLM, Evolution API y genera el token del webhook, por empresa. Usa `WaConfig::guardar()`/`regenerarWebhookToken()` del motor sin reimplementar nada.
+- **Probado con un payload de Evolution simulado y una clave de Anthropic inventada**: la llamada real a la API de Anthropic la rechazó (confirma que la integración del proveedor está bien conectada, no que sea un fallo de red). El error se manejó con gracia: mensaje al cliente, `HumanHandoff`, todo registrado en `wa_eventos`. Confirmado también: token inválido → 404, motor apagado → 200 ignorado, mensaje repetido → deduplicado sin nuevas filas.
+
+### No hecho / fuera de alcance de esta sesión
+
+- **La conversación real**: falta una clave de API válida (Anthropic/Gemini/OpenAI) para probar que el agente entiende al cliente y llama a `registrar_solicitud`. Sin eso no se puede cerrar la definición de hecho de Fase 1 (§13: "una carrera real recorre RECIBIDA→FINALIZADA con radiooperador").
+- Una instancia real de Evolution API conectada a un número de WhatsApp — necesaria para probar con un cliente de verdad, no solo con payloads simulados.
+- Notificar al cliente por WhatsApp tras asignar (§7) — la pieza que falta en `modules/panel/api/asignar.php`, ahora que el canal ya existe (antes ni eso había).
+- El panel del radiooperador no muestra todavía las conversaciones en `HUMANO_ATENDIENDO` (handoff) — están en `wa_conversaciones`, pero el panel solo lee `tx_carreras`. Gap real de §8, no cerrado esta sesión.
+- Voz e imagen (STT/TTS/Visión) — necesitan credenciales de proveedor aparte.
+- Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
 - Decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero` — pendiente, es una decisión aparte de TAXIS.

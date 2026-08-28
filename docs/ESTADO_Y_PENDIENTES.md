@@ -1,8 +1,17 @@
 # Estado y pendientes
 
-Última actualización: 2026-08-28 (sesión de arranque — Fase 0 CERRADA).
+Última actualización: 2026-08-28 (misma sesión — Fase 0 CERRADA, Fase 1 en progreso: webhook + agente conectados, falta una clave de API real).
 
-## Fase actual: FASE 0 — Cimientos (CERRADA) → lista para arrancar FASE 1
+## Fase actual: FASE 1 — webhook + agente conectados (falta credenciales reales para cerrarla)
+
+Capa 1 (webhook de Evolution API) y Capa 2 (`AiOrchestrator` conectado a `TaxiAdapter`) están construidas y probadas de punta a punta con un payload simulado — la llamada real a Anthropic con una clave inventada fue **rechazada por Anthropic** (no un error de red), confirmando que la integración del proveedor funciona. Lo único que falta para que un cliente real hable con el agente por WhatsApp:
+
+1. **Una clave de API real** (Anthropic, Gemini, o un compatible con OpenAI) — se configura en `/modules/admin/whatsapp.php`.
+2. **Una instancia real de Evolution API** conectada a un número de WhatsApp, con su webhook apuntando a `https://TU-DOMINIO/modules/webhook/mensajes.php?token=<el-generado-en-admin>`.
+
+Sin esas dos cosas no se puede cerrar la definición de hecho de Fase 1 (§13: "una carrera real recorre RECIBIDA→FINALIZADA con radiooperador, y `tx_carrera_eventos` cuenta la historia completa"). Ver `SPEC.md` y `ARQUITECTURA_Y_MODELO_DE_DATOS.md` para el detalle técnico de lo construido.
+
+## FASE 0 — Cimientos (CERRADA)
 
 ### Cómo se cerró Fase 0
 
@@ -34,11 +43,14 @@ Siete commits en el repo local: `d435ecb`, `78b2c56`, `090f2cf`, `f34abab`, `e7c
 
 ## Próximos pasos (en orden)
 
-1. **Decisión pendiente del usuario, sin urgencia**: ¿la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax` y de ahí a `maytech`/`MisRifas`/`PAduanero`? Hoy las cinco copias (contando la de TAXIS) vuelven a divergir — esta vez de forma deliberada y documentada, no accidental.
-2. Arrancar **Fase 1** de verdad: Capa 1 (webhook de Evolution API) + Capa 2 (`AiOrchestrator` con `AgentManager`, prompt de 9 capas) conectados a `TaxiAdapter`. Es lo único que falta para que un cliente real hable por WhatsApp y termine con una carrera en la cola del radiooperador.
-3. Notificar al conductor/cliente por WhatsApp tras asignar (§7, hoy pendiente porque no hay canal conectado) — Fase 2.
-4. Panel administrativo completo (empresas, líneas, agentes de IA, reportes) — Fase 3.
+1. **Bloqueante real para cerrar Fase 1**: conseguir una clave de API de un proveedor de IA (Anthropic, Gemini, o compatible OpenAI) y configurarla en `/modules/admin/whatsapp.php`. Sin esto no se puede probar que el agente conversa de verdad.
+2. Levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp — necesaria para probar con un cliente real, no solo con payloads simulados por curl.
+3. Con las dos anteriores: probar el flujo completo real — un mensaje de WhatsApp de verdad → el agente identifica al cliente, pregunta lo que falta, llama a `registrar_solicitud` → la carrera aparece en la cola del Centro de Transmisión → el radiooperador asigna → (pendiente aparte) notificar al cliente.
+4. Notificar al cliente por WhatsApp tras asignar (§7) — ahora que el canal existe, falta conectar `modules/panel/api/asignar.php` a `EvolutionClient::enviarTexto()`.
+5. Mostrar en el Centro de Transmisión las conversaciones en `HUMANO_ATENDIENDO` (handoff) — hoy están en `wa_conversaciones` pero el panel no las lee.
+6. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
+7. Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
 
 ## Qué NO bloquea nada ahora mismo
 
-A diferencia de las primeras cuatro partes de esta sesión, **ya no hay nada estructural bloqueando el resto del proyecto**. Fase 1 es trabajo real y sustancial (webhook, Evolution API, agentes), pero no depende de una decisión externa como el origen del motor — solo de tiempo y de las credenciales/infraestructura reales de Evolution API cuando llegue el momento de probar contra WhatsApp de verdad.
+Todo el código de Fase 1 (webhook, conexión del motor, panel de configuración) está construido, probado hasta donde se puede sin credenciales reales, y commiteado. Lo único que falta es infraestructura externa (una clave de API, una instancia de Evolution) — no hay ninguna decisión de diseño pendiente ni ninguna pieza a medio escribir.

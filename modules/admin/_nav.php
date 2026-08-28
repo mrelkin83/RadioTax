@@ -1,6 +1,6 @@
 <?php
 // Se incluye desde dentro de las páginas admin; espera $activo ('vehiculos'|'conductores').
-$tabs = ['vehiculos' => 'Vehículos', 'conductores' => 'Conductores'];
+$tabs = ['vehiculos' => 'Vehículos', 'conductores' => 'Conductores', 'whatsapp' => 'WhatsApp'];
 ?>
 <header class="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
   <div class="flex items-center gap-6">
