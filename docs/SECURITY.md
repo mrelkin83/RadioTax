@@ -5,3 +5,12 @@
 - SQL: 100% sentencias preparadas (`PDO::prepare` + bind), `PDO::ATTR_EMULATE_PREPARES => false`.
 - Resolución de tenant: `TaxiTenant::resolverPorTokenWebhook()` — pendiente conectar a un 404 seco real cuando exista el endpoint de webhook (Fase 1, motor).
 - Pendiente: definir dónde vive `APP_SECRET_KEY` en producción (no versionar `.env`; ver `.gitignore`).
+
+## Panel del radiooperador (`modules/panel/`)
+
+- Sesión PHP nativa reforzada en `core/Auth.php`: `cookie_httponly`, `cookie_samesite=Strict`, `use_strict_mode`, `cookie_secure` cuando la petición es HTTPS, `session_regenerate_id(true)` en cada login exitoso.
+- Claves con `password_hash`/`password_verify` (`PASSWORD_DEFAULT`), nunca en claro.
+- CSRF: token de sesión, verificado en todo endpoint POST (`Auth::verificarCsrf()`) vía header `X-CSRF-Token`. Probado: una petición sin token responde `419`.
+- Toda la API exige sesión (`Auth::requerirSesionApi()` → `401` si no hay sesión) y filtra cada consulta por `empresa_id` de la sesión — un radiooperador nunca ve datos de otra empresa.
+- XSS: `assets/panel.js` construye el DOM con `textContent`/`createElement`, nunca `innerHTML`, para todo dato que viene del cliente (dirección, observaciones, nombre) — regla §14.4 explícita sobre la cola del radiooperador.
+- Sin auto-registro de usuarios del panel: se crean con `database/seed_dev.php` (script de servidor, no expuesto por HTTP).

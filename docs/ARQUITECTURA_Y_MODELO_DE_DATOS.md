@@ -23,6 +23,19 @@ El §6 del system prompt maestro no define una tabla para "tipos de servicio" (r
 
 Hash SHA-256 de `conversacion_ref|cliente_id|tipo_servicio|recogida_texto|destino_texto`, columna única `idempotencia_hash` en `tx_carreras`. Si la carrera ya existe, `crearTransaccion()` la devuelve sin duplicar.
 
+## Decisión: tabla `tx_usuarios` (login del panel)
+
+El §6 tampoco define una tabla de usuarios/login, pero sin ella no hay forma de saber "QUIÉN" actuó en el panel (regla de trazabilidad §6 del system prompt maestro: cada evento debe registrar el actor concreto). Se agregó `tx_usuarios` (migración `0014`) con `usuario` **único globalmente** (no por empresa) para simplificar el login sin exigir selección de empresa en el formulario — el `empresa_id` del usuario define su tenant. Roles: `RADIOOPERADOR`, `ADMIN`. Sin auto-registro: el primer usuario de cada empresa se crea con `database/seed_dev.php`.
+
+## Panel del radiooperador — convención de carpetas
+
+Se revisaron los proyectos hermanos del mismo ecosistema (`Control_BarMax`, `maytech`, ambos en `C:\laragon\www\`) para no inventar una convención distinta: **ninguno usa carpeta `public/`** — el webroot es la raíz del proyecto, con `modules/<nombre>/` por feature. TAXIS sigue el mismo patrón: `modules/panel/` (páginas + `api/` con endpoints JSON + `assets/panel.js`).
+
+- `core/Auth.php`: sesión PHP nativa reforzada (`httponly`, `samesite=Strict`, `use_strict_mode`, `secure` si HTTPS, regeneración de ID en login), login por `usuario`/`clave` (`password_hash`/`password_verify`), guardas `requerirSesion()` (páginas, redirige a login) y `requerirSesionApi()` (API, responde 401 JSON), y CSRF de sesión (`verificarCsrf()` / `tokenCsrf()`).
+- Tailwind se carga vía CDN (`cdn.tailwindcss.com`) en vez de un pipeline de build — v1 sin Node configurado en el proyecto. Se puede reemplazar por un build real (como el `tailwind.config.js` que sí usa `maytech`) sin tocar el marcado, cuando haga falta purgar/optimizar CSS.
+- Tiempo real: **polling cada 4 s** desde `assets/panel.js` (vanilla JS, sin dependencias), tal como exige §3 ("polling corto en v1; SSE como mejora, nunca requisito").
+- Todo el DOM que incluye datos del cliente (`recogida_texto`, `destino_texto`, `observaciones`, nombres) se construye con `textContent`, nunca `innerHTML`, por la regla §14.4 sobre XSS en la cola del radiooperador.
+
 ## Pendiente explícito
 
 Ver `docs/ESTADO_Y_PENDIENTES.md`.

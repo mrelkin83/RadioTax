@@ -1,6 +1,6 @@
 # Estado y pendientes
 
-Última actualización: 2026-08-28 (sesión de arranque, Fase 0 — parte 2).
+Última actualización: 2026-08-28 (sesión de arranque, Fase 0 — parte 3: panel del radiooperador).
 
 ## Fase actual: FASE 0 — Cimientos (en progreso, no cerrada)
 
@@ -39,6 +39,14 @@
 ### Qué se puede avanzar mientras el motor no exista
 
 Todo lo que dependa exclusivamente del `TaxiAdapter`/esquema `tx_*` ya construidos, o del panel del radiooperador (TailwindCSS + JS vanilla, Capa 4 de §4), que no necesita el motor para su UI ni para las acciones manuales/CRUD de flota y turnos. Lo que sigue bloqueado: cualquier cosa de Capa 2 (agentes de IA, herramientas del §5.4, `AiOrchestrator`).
+
+### Panel del radiooperador (Capa 4) — construido esta sesión
+
+`modules/panel/` completo: login/logout con sesión + CSRF (`core/Auth.php`, tabla nueva `tx_usuarios`), dashboard con cola de solicitudes y tablero de flota (polling 4 s), y acciones manuales (asignar, cancelar con motivo, abrir/cerrar turno, cambiar estado de vehículo, solicitud manual). Probado de punta a punta por HTTP contra la base de desarrollo — ver `SPEC.md` y `TESTING.md` para el detalle y cómo volver a probarlo.
+
+**Credenciales de desarrollo actuales** (base `taxiapp` local): usuario `operador1`, empresa "Radio Tax" (id 1), un vehículo (`084`/`ABC084`) y un conductor (`Carlos Perez`) de prueba ya insertados manualmente. La clave no se documenta aquí (no se vuelve a mostrar tras `seed_dev.php`); si se pierde, hay que crear otro usuario con el script o resetear la clave por SQL.
+
+Pendiente de este pedazo: notificar al cliente por WhatsApp tras asignar (necesita el motor), y el panel administrativo (empresas/líneas/agentes/vehículos/conductores/reportes) que es "aparte" del Centro de Transmisión según §8 — no se construyó todavía porque no era lo pedido esta sesión.
 
 ### Decisiones tomadas que vale la pena recordar
 

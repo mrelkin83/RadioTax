@@ -114,7 +114,7 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return (int) $sentencia->fetchColumn();
     }
 
-    public function crearTransaccion(array $datos): array
+    public function crearTransaccion(array $datos, string $actorTipo = 'IA'): array
     {
         foreach (['empresa_id', 'linea_id', 'cliente_id', 'conversacion_ref', 'tipo_servicio', 'recogida_texto', 'destino_texto'] as $campo) {
             if (empty($datos[$campo])) {
@@ -165,7 +165,7 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         ]);
 
         $carreraId = (int) $this->conexion()->lastInsertId();
-        $this->registrarEvento($carreraId, 'CARRERA_RECIBIDA', 'IA', null, ['tipo_servicio' => $datos['tipo_servicio']]);
+        $this->registrarEvento($carreraId, 'CARRERA_RECIBIDA', $actorTipo, $datos['actor_id'] ?? null, ['tipo_servicio' => $datos['tipo_servicio']]);
 
         return $this->estadoTransaccion($carreraId);
     }
