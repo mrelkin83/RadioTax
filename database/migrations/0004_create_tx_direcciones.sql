@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS tx_direcciones (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    cliente_id INT UNSIGNED NOT NULL,
+    etiqueta VARCHAR(60) NULL,
+    texto VARCHAR(255) NOT NULL,
+    barrio_zona VARCHAR(120) NULL,
+    lat DECIMAL(10,7) NULL,
+    lng DECIMAL(10,7) NULL,
+    veces_usada INT UNSIGNED NOT NULL DEFAULT 0,
+    creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_tx_direcciones_cliente FOREIGN KEY (cliente_id) REFERENCES tx_clientes (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

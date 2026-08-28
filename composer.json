@@ -1,0 +1,22 @@
+{
+    "name": "radiotax/taxiapp",
+    "description": "Plataforma de despacho de taxis marca blanca sobre elkinlinan/whatsapp-ai-engine. Primer tenant: Radio Tax (Arauca).",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-sodium": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "TaxiApp\\": "src/",
+            "TaxiApp\\Core\\": "core/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}
