@@ -7,8 +7,15 @@
         "php": "^8.2",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
-        "ext-sodium": "*"
+        "ext-sodium": "*",
+        "elkinlinan/whatsapp-ai-engine": "dev-master"
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "packages/whatsapp-engine"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "TaxiApp\\": "src/",

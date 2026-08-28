@@ -1,0 +1,58 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "5fe59cc5f7e5fcb87290f49ae5bbcfe0",
+    "packages": [
+        {
+            "name": "elkinlinan/whatsapp-ai-engine",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "packages/whatsapp-engine",
+                "reference": "50225e47614202154d55c2906e88a9dafd65c819"
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ElkinLinan\\WhatsappAiEngine\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Elkin Liñán"
+                }
+            ],
+            "description": "Motor conversacional de WhatsApp con IA: pedidos, cobro, voz e imágenes. Independiente del negocio que lo use.",
+            "transport-options": {
+                "relative": true
+            }
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {
+        "elkinlinan/whatsapp-ai-engine": 20
+    },
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {
+        "php": "^8.2",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-sodium": "*"
+    },
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
+}

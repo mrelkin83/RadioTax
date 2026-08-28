@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace TaxiApp\Ports;
 
+use ElkinLinan\WhatsappAiEngine\Ports\SecretPort;
 use RuntimeException;
 use TaxiApp\Core\Env;
 
 /**
- * Pendiente: conformar al SecretPort real del motor. Hoy cifra/descifra
- * con libsodium usando APP_SECRET_KEY (env) para que los puertos que lo
- * necesiten (ej. tokens de línea) no guarden nada en claro.
+ * Cifra/descifra con libsodium usando APP_SECRET_KEY (env), para que los
+ * secretos del negocio (claves de IA, de la pasarela, del canal) no se
+ * guarden nunca en claro.
  */
-final class TaxiCifrado
+final class TaxiCifrado implements SecretPort
 {
     private readonly string $llave;
 

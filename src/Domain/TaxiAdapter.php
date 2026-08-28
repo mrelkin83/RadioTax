@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TaxiApp\Domain;
 
+use ElkinLinan\WhatsappAiEngine\Engine;
+use ElkinLinan\WhatsappAiEngine\Ports\DomainAdapter;
+use ElkinLinan\WhatsappAiEngine\Ports\SinCatalogoDeProductos;
+use ElkinLinan\WhatsappAiEngine\Ports\SoportaHerramientasPersonalizadas;
+use LogicException;
 use PDO;
 use RuntimeException;
 use TaxiApp\Capacidades\SoportaDespachoOperativo;
@@ -11,12 +16,29 @@ use TaxiApp\Capacidades\SoportaDireccionesFrecuentes;
 use TaxiApp\Core\Database;
 
 /**
- * Pendiente: `implements \ElkinLinan\WhatsappAiEngine\Contracts\DomainAdapter`
- * en cuanto el paquete esté declarado en composer.json (ver docs/ESTADO_Y_PENDIENTES.md).
- * Los nombres y firmas de método ya siguen el mapeo documentado en
- * SYSTEM_PROMPT_MAESTRO_TAXIAPP.md §5.2.
+ * La frontera entre el motor y el dominio taxi.
+ *
+ * TAXI no vende productos con cantidad — vende viajes con recogida y destino —
+ * así que implementa SinCatalogoDeProductos para apagar las nueve herramientas
+ * de "carrito de compra" del motor (consultar_menu, crear_pedido,
+ * calcular_total...) y SoportaHerramientasPersonalizadas para ofrecer las
+ * suyas (registrar_solicitud, consultar_estado_carrera...). Ver
+ * docs/ARQUITECTURA_Y_MODELO_DE_DATOS.md para el porqué completo.
+ *
+ * De los métodos que exige DomainAdapter, solo `contextoCliente()` y
+ * `capacidades()` son alcanzables de verdad (el motor los llama siempre). El
+ * resto (buscarItems, crearTransaccion, calcularTotal...) solo se alcanzan
+ * desde las herramientas apagadas por SinCatalogoDeProductos, así que aquí son
+ * o bien delegados a los métodos reales de este dominio (cuando la firma solo
+ * cambia de tipo, ej. string→int), o bien un `throw` explícito cuando la forma
+ * no tiene traducción honesta (un carrito de productos no es un viaje).
  */
-final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespachoOperativo
+final class TaxiAdapter implements
+    DomainAdapter,
+    SinCatalogoDeProductos,
+    SoportaHerramientasPersonalizadas,
+    SoportaDireccionesFrecuentes,
+    SoportaDespachoOperativo
 {
     public function __construct(private readonly ?PDO $db = null)
     {
@@ -27,23 +49,62 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return $this->db ?? Database::conexion();
     }
 
-    public function contextoCliente(string $whatsapp, int $empresaId): array
+    private function empresaId(): int
     {
-        $sentencia = $this->conexion()->prepare(
-            'SELECT * FROM tx_clientes WHERE empresa_id = :empresa AND whatsapp = :whatsapp LIMIT 1'
-        );
-        $sentencia->execute(['empresa' => $empresaId, 'whatsapp' => $whatsapp]);
-        $cliente = $sentencia->fetch();
-
-        if ($cliente === false) {
-            return ['cliente' => null, 'direcciones_frecuentes' => [], 'historial' => []];
+        $id = Engine::negocio()->id();
+        if ($id === null) {
+            throw new RuntimeException(
+                'TaxiAdapter necesita un TenantPort con empresa_id — TAXIS es multi-empresa desde el esquema.'
+            );
         }
 
+        return $id;
+    }
+
+    /* ── Identificación del cliente (§5.4 identificar_cliente / contextoCliente) ── */
+
+    public function contextoCliente(array $conversacion): array
+    {
+        $clienteId = $this->resolverClienteId($conversacion);
+        $cliente = $this->conexion()->prepare('SELECT * FROM tx_clientes WHERE id = :id LIMIT 1');
+        $cliente->execute(['id' => $clienteId]);
+        $fila = $cliente->fetch();
+
         return [
-            'cliente' => $cliente,
-            'direcciones_frecuentes' => $this->listar((int) $cliente['id']),
-            'historial' => $this->historialCarreras((int) $cliente['id']),
+            'cliente_id' => $clienteId,
+            'nombre' => $fila['nombre'] ?? null,
+            'direcciones_frecuentes' => $this->listar($clienteId),
+            'historial' => $this->historialCarreras($clienteId),
         ];
+    }
+
+    private function resolverClienteId(array $conversacion): int
+    {
+        $whatsapp = (string) ($conversacion['telefono'] ?? '');
+        if ($whatsapp === '') {
+            throw new RuntimeException('No se pudo identificar el número de WhatsApp de esta conversación.');
+        }
+
+        $empresaId = $this->empresaId();
+        $sentencia = $this->conexion()->prepare(
+            'SELECT id FROM tx_clientes WHERE empresa_id = :empresa AND whatsapp = :whatsapp LIMIT 1'
+        );
+        $sentencia->execute(['empresa' => $empresaId, 'whatsapp' => $whatsapp]);
+        $id = $sentencia->fetchColumn();
+        if ($id !== false) {
+            return (int) $id;
+        }
+
+        $sentencia = $this->conexion()->prepare(
+            "INSERT INTO tx_clientes (empresa_id, whatsapp, nombre, creado_por) VALUES (:empresa, :whatsapp, :nombre, 'IA')"
+        );
+        $sentencia->execute([
+            'empresa' => $empresaId,
+            'whatsapp' => $whatsapp,
+            'nombre' => $conversacion['nombre_contacto'] ?? null,
+        ]);
+
+        return (int) $this->conexion()->lastInsertId();
     }
 
     private function historialCarreras(int $clienteId, int $limite = 5): array
@@ -59,7 +120,9 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return $sentencia->fetchAll();
     }
 
-    public function buscarItems(int $empresaId): array
+    /* ── Catálogo de tipos de servicio (§5.4 consultar_tipos_servicio) ── */
+
+    private function tiposServicio(int $empresaId): array
     {
         $tipos = $this->empresa($empresaId)['config']['tipos_servicio'] ?? null;
 
@@ -71,17 +134,6 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         }
 
         return $tipos;
-    }
-
-    public function detalleItem(int $empresaId, string $codigo): ?array
-    {
-        foreach ($this->buscarItems($empresaId) as $item) {
-            if (($item['codigo'] ?? null) === $codigo) {
-                return $item;
-            }
-        }
-
-        return null;
     }
 
     private function empresa(int $empresaId): array
@@ -99,22 +151,11 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return $empresa;
     }
 
-    public function disponibilidad(int $empresaId, string $tipoServicio): ?int
-    {
-        $empresa = $this->empresa($empresaId);
-        if (($empresa['config']['exponer_disponibilidad'] ?? false) !== true) {
-            return null;
-        }
+    /* ── La carrera: lógica real, con nombres propios para no chocar con las
+       firmas de DomainAdapter (que están pensadas para un carrito de
+       productos, no para un viaje) ── */
 
-        $sentencia = $this->conexion()->prepare(
-            "SELECT COUNT(*) FROM tx_vehiculos WHERE empresa_id = :empresa AND tipo = :tipo AND estado_vehiculo = 'DISPONIBLE'"
-        );
-        $sentencia->execute(['empresa' => $empresaId, 'tipo' => $tipoServicio]);
-
-        return (int) $sentencia->fetchColumn();
-    }
-
-    public function crearTransaccion(array $datos, string $actorTipo = 'IA'): array
+    public function crearCarrera(array $datos, string $actorTipo = 'IA'): array
     {
         foreach (['empresa_id', 'linea_id', 'cliente_id', 'conversacion_ref', 'tipo_servicio', 'recogida_texto', 'destino_texto'] as $campo) {
             if (empty($datos[$campo])) {
@@ -167,7 +208,7 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         $carreraId = (int) $this->conexion()->lastInsertId();
         $this->registrarEvento($carreraId, 'CARRERA_RECIBIDA', $actorTipo, $datos['actor_id'] ?? null, ['tipo_servicio' => $datos['tipo_servicio']]);
 
-        return $this->estadoTransaccion($carreraId);
+        return $this->estadoCarrera($carreraId);
     }
 
     private function modoDespacho(int $empresaId): string
@@ -179,7 +220,7 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return $modo !== false ? $modo : $this->empresa($empresaId)['modo_despacho_default'];
     }
 
-    public function estadoTransaccion(int $carreraId): array
+    public function estadoCarrera(int $carreraId): array
     {
         $sentencia = $this->conexion()->prepare('SELECT * FROM tx_carreras WHERE id = :id LIMIT 1');
         $sentencia->execute(['id' => $carreraId]);
@@ -192,9 +233,9 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return $carrera;
     }
 
-    public function cancelarTransaccion(int $carreraId, string $motivo, string $actorTipo = 'IA', ?int $actorId = null): bool
+    public function cancelarCarrera(int $carreraId, string $motivo, string $actorTipo = 'IA', ?int $actorId = null): bool
     {
-        $carrera = $this->estadoTransaccion($carreraId);
+        $carrera = $this->estadoCarrera($carreraId);
         if (in_array($carrera['estado'], ['EN_SERVICIO', 'FINALIZADA', 'CANCELADA'], true)) {
             throw new RuntimeException("La carrera {$carreraId} no se puede cancelar en estado {$carrera['estado']}.");
         }
@@ -209,9 +250,9 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return true;
     }
 
-    public function confirmarTransaccion(int $carreraId): bool
+    public function confirmarCarrera(int $carreraId): bool
     {
-        $carrera = $this->estadoTransaccion($carreraId);
+        $carrera = $this->estadoCarrera($carreraId);
         if (!in_array($carrera['estado'], ['RECIBIDA', 'DATOS_COMPLETOS'], true)) {
             throw new RuntimeException("La carrera {$carreraId} no se puede enviar a despacho desde el estado {$carrera['estado']}.");
         }
@@ -224,9 +265,10 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return true;
     }
 
-    public function calcularTotal(int $carreraId): array
+    /** El valor lo pone el conductor (regla §2 del system prompt maestro): nunca un monto. */
+    public function calcularTotalCarrera(int $carreraId): array
     {
-        $carrera = $this->estadoTransaccion($carreraId);
+        $carrera = $this->estadoCarrera($carreraId);
 
         return [
             'carrera_id' => $carrera['id'],
@@ -235,22 +277,22 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         ];
     }
 
-    public function capacidades(): array
+    private function registrarEvento(int $carreraId, string $evento, string $actorTipo, ?int $actorId, array $detalle): void
     {
-        return [
-            'consultar_tipos_servicio' => true,
-            'consultar_direcciones_frecuentes' => true,
-            'registrar_solicitud' => true,
-            'consultar_estado_carrera' => true,
-            'cancelar_carrera' => true,
-            'transferir_a_humano' => true,
-            'pagos' => false,
-            'promociones' => false,
-            'menu_del_dia' => false,
-            'credito' => false,
-            'servicio_tecnico' => false,
-        ];
+        $sentencia = $this->conexion()->prepare(
+            'INSERT INTO tx_carrera_eventos (carrera_id, evento, actor_tipo, actor_id, detalle)
+             VALUES (:carrera, :evento, :actor_tipo, :actor_id, :detalle)'
+        );
+        $sentencia->execute([
+            'carrera' => $carreraId,
+            'evento' => $evento,
+            'actor_tipo' => $actorTipo,
+            'actor_id' => $actorId,
+            'detalle' => json_encode($detalle, JSON_UNESCAPED_UNICODE),
+        ]);
     }
+
+    /* ── SoportaDireccionesFrecuentes (§5.3) ── */
 
     public function listar(int $clienteId): array
     {
@@ -276,9 +318,11 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         ]);
     }
 
+    /* ── SoportaDespachoOperativo (§5.3) ── */
+
     public function estadoDeCarrera(int $carreraId): array
     {
-        return $this->estadoTransaccion($carreraId);
+        return $this->estadoCarrera($carreraId);
     }
 
     public function candidatosDisponibles(int $empresaId, string $tipoServicio): array
@@ -291,18 +335,248 @@ final class TaxiAdapter implements SoportaDireccionesFrecuentes, SoportaDespacho
         return $sentencia->fetchAll();
     }
 
-    private function registrarEvento(int $carreraId, string $evento, string $actorTipo, ?int $actorId, array $detalle): void
+    /* ══════════════════════════════════════════════════════════════════════
+       DomainAdapter — lo que exige el motor. Solo contextoCliente() (arriba)
+       y capacidades() son alcanzables en la práctica: el resto cuelga de las
+       nueve herramientas que SinCatalogoDeProductos apaga.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    public function capacidades(): array
     {
-        $sentencia = $this->conexion()->prepare(
-            'INSERT INTO tx_carrera_eventos (carrera_id, evento, actor_tipo, actor_id, detalle)
-             VALUES (:carrera, :evento, :actor_tipo, :actor_id, :detalle)'
+        // TAXI no usa ninguna de las capacidades opcionales del vocabulario del
+        // motor (entrega/promociones/menu_del_dia/garantias/servicio_tecnico/
+        // credito/...): todas sus herramientas propias van sin 'capacidad',
+        // habilitadas siempre que el agente las tenga en su lista blanca.
+        return [];
+    }
+
+    public function buscarItems(?string $busqueda = null, array $filtros = [], int $limite = 60): array
+    {
+        return $this->tiposServicio($this->empresaId());
+    }
+
+    public function detalleItem(string $id): ?array
+    {
+        foreach ($this->tiposServicio($this->empresaId()) as $item) {
+            if (($item['codigo'] ?? null) === $id) {
+                return $item;
+            }
+        }
+
+        return null;
+    }
+
+    /** No aplica: TAXI no controla "unidades" de un tipo de servicio. */
+    public function disponibilidad(string $id): ?int
+    {
+        return null;
+    }
+
+    /**
+     * No hay traducción honesta: el motor piensa esto como un carrito de
+     * productos con cantidad, y un viaje no lo es (una recogida y un destino,
+     * no "N unidades de taxi"). Inalcanzable en la práctica (ver
+     * SinCatalogoDeProductos); si algo llega aquí es un error de programación
+     * en el motor o en cómo se lo llamó, no un caso de negocio real.
+     */
+    public function crearTransaccion(array $conversacion, array $items, array $datos = []): array
+    {
+        throw new LogicException(
+            'crearTransaccion() no aplica en TAXI (no vende productos con cantidad). '
+            . 'Usa la herramienta registrar_solicitud, que llama a crearCarrera().'
         );
-        $sentencia->execute([
-            'carrera' => $carreraId,
-            'evento' => $evento,
-            'actor_tipo' => $actorTipo,
-            'actor_id' => $actorId,
-            'detalle' => json_encode($detalle, JSON_UNESCAPED_UNICODE),
-        ]);
+    }
+
+    /** Mismo motivo que crearTransaccion(): un viaje no es un carrito. Inalcanzable. */
+    public function calcularTotal(array $items, float $extra = 0.0): array
+    {
+        throw new LogicException(
+            'calcularTotal() no aplica en TAXI. El valor de la carrera lo acuerda el cliente con el conductor '
+            . '(regla §2 del system prompt maestro): nunca lo calcula el sistema.'
+        );
+    }
+
+    public function estadoTransaccion(string $id): array
+    {
+        return $this->estadoCarrera((int) $id);
+    }
+
+    /**
+     * No hay conversacion_id propio en el esquema tx_* (ese id es del motor,
+     * de wa_conversaciones). Inalcanzable en la práctica: consultar_estado_carrera
+     * ya resuelve "mis carreras abiertas" a partir del cliente identificado.
+     */
+    public function transaccionesDe(int $conversacionId): array
+    {
+        return [];
+    }
+
+    public function cancelarTransaccion(string $id): array
+    {
+        $ok = $this->cancelarCarrera((int) $id, 'Cancelada por el cliente vía WhatsApp', 'IA');
+
+        return ['ok' => $ok];
+    }
+
+    public function confirmarTransaccion(string $id): bool
+    {
+        return $this->confirmarCarrera((int) $id);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       SoportaHerramientasPersonalizadas — el catálogo real de TAXI (§5.4).
+       ══════════════════════════════════════════════════════════════════════ */
+
+    public function herramientasPersonalizadas(): array
+    {
+        return [
+            'identificar_cliente' => [
+                'description' => 'Reconoce al cliente por su número de WhatsApp y trae lo que ya sabemos de él: nombre y direcciones guardadas. Llámala al inicio para no volver a preguntar lo que ya se sabe.',
+                'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+            ],
+            'consultar_tipos_servicio' => [
+                'description' => 'Los tipos de servicio que ofrece esta empresa ahora mismo (taxi, carga, ...).',
+                'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+            ],
+            'consultar_direcciones_frecuentes' => [
+                'description' => 'Direcciones guardadas del cliente de esta conversación (casa, trabajo...). Úsala antes de preguntar la dirección: si el cliente tiene una guardada, confírmasela en vez de pedírsela de nuevo.',
+                'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+            ],
+            'registrar_solicitud' => [
+                'description' => 'Crea la solicitud de servicio (la carrera) con los datos que ya confirmó el cliente. Llámala solo cuando tengas tipo de servicio, recogida y destino — nunca inventes ninguno.',
+                'parameters' => ['type' => 'object', 'properties' => [
+                    'tipo_servicio' => ['type' => 'string', 'description' => 'Código del tipo de servicio, tal como lo devolvió consultar_tipos_servicio'],
+                    'recogida_texto' => ['type' => 'string'],
+                    'destino_texto' => ['type' => 'string'],
+                    'observaciones' => ['type' => 'string'],
+                ], 'required' => ['tipo_servicio', 'recogida_texto', 'destino_texto']],
+            ],
+            'consultar_estado_carrera' => [
+                'description' => 'Estado en vivo de una carrera de este cliente (asignada, en camino...). Sin carrera_id, devuelve las carreras abiertas de esta conversación.',
+                'parameters' => ['type' => 'object', 'properties' => [
+                    'carrera_id' => ['type' => 'integer'],
+                ], 'required' => []],
+            ],
+            'cancelar_carrera' => [
+                'description' => 'Cancela una carrera de este cliente, con el motivo que dé. Solo funciona antes de que el vehículo esté en servicio.',
+                'parameters' => ['type' => 'object', 'properties' => [
+                    'carrera_id' => ['type' => 'integer'],
+                    'motivo' => ['type' => 'string'],
+                ], 'required' => ['carrera_id', 'motivo']],
+            ],
+        ];
+    }
+
+    public function ejecutarHerramientaPersonalizada(string $nombre, array $args, array $ctx): ?array
+    {
+        $conversacion = $ctx['conversacion'] ?? [];
+
+        return match ($nombre) {
+            'identificar_cliente' => ['ok' => true] + $this->contextoCliente($conversacion),
+            'consultar_tipos_servicio' => ['ok' => true, 'tipos_servicio' => $this->tiposServicio($this->empresaId())],
+            'consultar_direcciones_frecuentes' => [
+                'ok' => true,
+                'direcciones' => $this->listar($this->resolverClienteId($conversacion)),
+            ],
+            'registrar_solicitud' => $this->herramientaRegistrarSolicitud($conversacion, $args),
+            'consultar_estado_carrera' => $this->herramientaConsultarEstadoCarrera($conversacion, $args),
+            'cancelar_carrera' => $this->herramientaCancelarCarrera($conversacion, $args),
+            default => null,
+        };
+    }
+
+    private function herramientaRegistrarSolicitud(array $conversacion, array $args): array
+    {
+        $tipoServicio = trim((string) ($args['tipo_servicio'] ?? ''));
+        $recogida = trim((string) ($args['recogida_texto'] ?? ''));
+        $destino = trim((string) ($args['destino_texto'] ?? ''));
+        $observaciones = trim((string) ($args['observaciones'] ?? ''));
+
+        if ($tipoServicio === '' || $recogida === '' || $destino === '') {
+            return ['ok' => false, 'error' => 'Faltan datos: tipo de servicio, recogida y destino son obligatorios.'];
+        }
+
+        $empresaId = $this->empresaId();
+        $clienteId = $this->resolverClienteId($conversacion);
+        $lineaId = $conversacion['linea_id'] ?? $this->primeraLineaDe($empresaId);
+        if ($lineaId === null) {
+            return ['ok' => false, 'error' => 'Esta empresa no tiene líneas de WhatsApp configuradas.'];
+        }
+
+        try {
+            $carrera = $this->crearCarrera([
+                'empresa_id' => $empresaId,
+                'linea_id' => $lineaId,
+                'cliente_id' => $clienteId,
+                'conversacion_ref' => 'wa-conv-' . ($conversacion['id'] ?? uniqid('', true)),
+                'tipo_servicio' => $tipoServicio,
+                'recogida_texto' => $recogida,
+                'destino_texto' => $destino,
+                'observaciones' => $observaciones !== '' ? $observaciones : null,
+            ], 'IA');
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+
+        return [
+            'ok' => true,
+            'carrera_id' => $carrera['id'],
+            'estado' => $carrera['estado'],
+            'mensaje_para_el_cliente' => 'Ya registré tu solicitud. En un momento te confirmo el vehículo asignado.',
+        ];
+    }
+
+    private function primeraLineaDe(int $empresaId): ?int
+    {
+        $sentencia = $this->conexion()->prepare('SELECT id FROM tx_lineas WHERE empresa_id = :empresa ORDER BY id ASC LIMIT 1');
+        $sentencia->execute(['empresa' => $empresaId]);
+        $id = $sentencia->fetchColumn();
+
+        return $id !== false ? (int) $id : null;
+    }
+
+    private function herramientaConsultarEstadoCarrera(array $conversacion, array $args): array
+    {
+        $clienteId = $this->resolverClienteId($conversacion);
+
+        if (!empty($args['carrera_id'])) {
+            $carrera = $this->estadoCarrera((int) $args['carrera_id']);
+            if ((int) $carrera['cliente_id'] !== $clienteId) {
+                return ['ok' => false, 'error' => 'Esa carrera no es de este cliente'];
+            }
+
+            return ['ok' => true, 'carrera' => $carrera];
+        }
+
+        $sentencia = $this->conexion()->prepare(
+            "SELECT * FROM tx_carreras WHERE cliente_id = :cliente
+             AND estado NOT IN ('FINALIZADA','CANCELADA','NO_ATENDIDA') ORDER BY creado_en DESC"
+        );
+        $sentencia->execute(['cliente' => $clienteId]);
+
+        return ['ok' => true, 'carreras' => $sentencia->fetchAll()];
+    }
+
+    private function herramientaCancelarCarrera(array $conversacion, array $args): array
+    {
+        $carreraId = (int) ($args['carrera_id'] ?? 0);
+        $motivo = trim((string) ($args['motivo'] ?? ''));
+        if ($carreraId <= 0 || $motivo === '') {
+            return ['ok' => false, 'error' => 'Faltan datos: carrera_id y motivo son obligatorios.'];
+        }
+
+        $clienteId = $this->resolverClienteId($conversacion);
+        $carrera = $this->estadoCarrera($carreraId);
+        if ((int) $carrera['cliente_id'] !== $clienteId) {
+            return ['ok' => false, 'error' => 'Esa carrera no es de este cliente'];
+        }
+
+        try {
+            $this->cancelarCarrera($carreraId, $motivo, 'IA');
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+
+        return ['ok' => true, 'cancelada' => true];
     }
 }

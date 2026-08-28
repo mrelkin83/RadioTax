@@ -36,6 +36,33 @@ Se revisaron los proyectos hermanos del mismo ecosistema (`Control_BarMax`, `may
 - Tiempo real: **polling cada 4 s** desde `assets/panel.js` (vanilla JS, sin dependencias), tal como exige §3 ("polling corto en v1; SSE como mejora, nunca requisito").
 - Todo el DOM que incluye datos del cliente (`recogida_texto`, `destino_texto`, `observaciones`, nombres) se construye con `textContent`, nunca `innerHTML`, por la regla §14.4 sobre XSS en la cola del radiooperador.
 
+## El motor: dónde vive y qué se le cambió
+
+`packages/whatsapp-engine/` es una copia local del paquete `elkinlinan/whatsapp-ai-engine`, tomada de `C:\laragon\www\Control_BarMax\packages\whatsapp-engine` el 28 ago 2026 (la más reciente de cuatro copias divergentes — ver `AUDITORIA.md`). Se declara en `composer.json` como *path repository* (`"type": "path", "url": "packages/whatsapp-engine"`), igual que en los proyectos hermanos.
+
+**Se modificó `src/Core/ToolEngine.php`** (con autorización explícita del usuario, no en automático — regla §4 del system prompt maestro: "el motor... NO se modifica" salvo que la interfaz esté mal, y aquí lo estaba). El motivo: el catálogo de herramientas mezclaba dos cosas que debían estar separadas — un núcleo neutral (autorización, capacidades, transferir a humano) y un **catálogo fijo de "producto + cantidad"** (consultar_menu, crear_pedido...) sin ningún punto de extensión, con `crear_pedido` escribiendo directo por SQL a `wa_pedidos` con columnas de reparto a domicilio. Un negocio de viajes no es eso.
+
+Dos piezas nuevas, ambas opcionales y retrocompatibles (la suite propia del motor sigue en 55/55 sin cambios):
+
+- **`Ports\SinCatalogoDeProductos`** (interfaz marcador, sin métodos): un `DomainAdapter` que la implemente apaga las nueve herramientas de "producto + cantidad" (antes no tenían `'capacidad'` que las filtrara — estaban siempre encendidas). Los adaptadores existentes (`ControlBarMaxAdapter`, `MayTechAdapter`, ...) no la implementan, así que no cambian de comportamiento.
+- **`Ports\SoportaHerramientasPersonalizadas`**: un `DomainAdapter` que la implemente aporta su propio catálogo de herramientas (mismo formato que las internas) y su propio despachador. `ToolEngine::catalogo()` las mezcla con las suyas; `ToolEngine::despachar()` les cede el turno cuando el nombre no coincide con ningún `case` del `switch` fijo.
+
+`TaxiAdapter` implementa las dos. Su catálogo propio (`herramientasPersonalizadas()`) es el mapeo real del §5.4 del system prompt maestro: `identificar_cliente`, `consultar_tipos_servicio`, `consultar_direcciones_frecuentes`, `registrar_solicitud`, `consultar_estado_carrera`, `cancelar_carrera`. `transferir_a_humano` ya viene del motor sin tocar nada (es `'siempre' => true`, no se puede deshabilitar).
+
+**Pendiente de decidir con el usuario, aparte**: si esta generalización se debe portar de vuelta a `Control_BarMax` (y de ahí a `maytech`/`MisRifas`/`PAduanero`) para que las cinco copias converjan, o si se deja como una divergencia más — deliberada esta vez, documentada, y backward-compatible, a diferencia de las anteriores.
+
+## DomainAdapter: el contrato real (no el de §5.2 del system prompt maestro)
+
+La tabla del §5.2 del system prompt maestro describe la intención, pero las firmas reales del paquete (`buscarItems(?string, array, int)`, `crearTransaccion(array $conversacion, array $items, array $datos)`, `calcularTotal(array $items, float $extra)`, ids como `string` no `int`...) están pensadas para un carrito de productos, no para un viaje. `TaxiAdapter` sí implementa `DomainAdapter` formalmente, pero:
+
+- Solo **`contextoCliente()`** y **`capacidades()`** son alcanzables en la práctica: el motor los llama siempre (vía `AiOrchestrator`).
+- El resto (`buscarItems`, `detalleItem`, `disponibilidad`, `crearTransaccion`, `calcularTotal`, `transaccionesDe`) solo se alcanzaría desde las nueve herramientas que `SinCatalogoDeProductos` apaga — así que son delegados a métodos reales con otro nombre cuando la firma solo difiere en el tipo (ej. `estadoTransaccion(string $id)` → `estadoCarrera((int) $id)`), o un `throw` explícito cuando no hay traducción honesta (`crearTransaccion`/`calcularTotal`: un carrito de productos no es un viaje con recogida y destino).
+- La lógica real de negocio vive en métodos con nombre propio — `crearCarrera()`, `estadoCarrera()`, `cancelarCarrera()`, `confirmarCarrera()`, `calcularTotalCarrera()` — llamados desde `modules/panel/api/*.php` directamente y desde las herramientas personalizadas (`ejecutarHerramientaPersonalizada()`).
+
+## Multi-empresa: `TenantPort` (no solo `empresa_id` por parámetro)
+
+`TaxiTenant implements TenantPort` se instancia **por request**, ya resuelta la empresa (hoy a mano; cuando exista el webhook de Capa 1, `TaxiTenant::resolverPorTokenWebhook()` lo hace). `scopeFila()` devuelve `['columna' => 'empresa_id', 'valor' => N]` — TAXIS es "una base, una columna", el mismo patrón que MayTech POS, no el de ControlBarMax (una base por negocio). Los métodos de `TaxiAdapter` que necesitan la empresa activa la piden con `Engine::negocio()->id()`, no por parámetro.
+
 ## Pendiente explícito
 
 Ver `docs/ESTADO_Y_PENDIENTES.md`.

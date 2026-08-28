@@ -1,70 +1,44 @@
 # Estado y pendientes
 
-Última actualización: 2026-08-28 (sesión de arranque, Fase 0 — parte 4: panel admin mínimo, límite de lo avanzable sin el motor).
+Última actualización: 2026-08-28 (sesión de arranque — Fase 0 CERRADA).
 
-## Fase actual: FASE 0 — Cimientos (en progreso, no cerrada)
+## Fase actual: FASE 0 — Cimientos (CERRADA) → lista para arrancar FASE 1
 
-### Bloqueante principal
+### Cómo se cerró Fase 0
 
-**El paquete `elkinlinan/whatsapp-ai-engine` no existe todavía.** Confirmado con el usuario. Esto impide:
+La sesión empezó con el motor "sin origen conocido". El usuario preguntó *"en la carpeta del proyecto ¿dónde más?"*, lo que llevó a buscar en todo `C:\laragon\www` en vez de solo en TAXIS — y ahí apareció: el motor vive como *path repository* de Composer, con una copia local en cada proyecto hermano (`Control_BarMax`, `maytech`, `MisRifas`, `PAduanero`). Las cuatro habían divergido (`diff -rq` no coincide entre ninguna). El usuario eligió usar la copia de `Control_BarMax` (la más reciente), copiada a `packages/whatsapp-engine/` dentro de TAXIS.
 
-- Declarar el `require` real en `composer.json`.
-- Ejecutar `Engine::arrancar([...])`.
-- Hacer que `TaxiAdapter` implemente formalmente `DomainAdapter`.
-- Correr el patrón `tests/prueba.php` del paquete adaptado al taxi contra el contrato real (existe una versión propia en este repo, pero valida solo el adaptador + esquema, no la integración con el motor).
+Al leer el contrato real (`DomainAdapter`) y `ToolEngine.php`, apareció un problema serio: el catálogo de herramientas del motor estaba hardcodeado para negocios de "producto + cantidad" con reparto a domicilio (`crear_pedido` escribía directo a `wa_pedidos` con columnas `modo_entrega`/`barrio`/`ciudad`), sin ningún punto de extensión para algo tan distinto como un viaje con recogida y destino. Es la "prueba de fuego" que el propio `EXTRACCION_PAQUETE.md` (dentro de `Control_BarMax`) predijo para un tercer consumidor estructuralmente distinto — y esta vez sí falló.
 
-**Sin esto, la definición de hecho de Fase 0 no se puede cerrar del todo**, aunque todo lo demás de Fase 0 quedó construido y probado (ver `SPEC.md`).
+Con autorización explícita del usuario, se generalizó `ToolEngine` (dos puertos nuevos: `SinCatalogoDeProductos` y `SoportaHerramientasPersonalizadas`), de forma retrocompatible — la suite propia del motor sigue en 55/55. `TaxiAdapter` se reescribió contra el contrato real (no el mapeo aproximado del §5.2 del system prompt maestro, que describe la intención pero no las firmas reales). `tests/prueba.php` ahora arranca el motor de verdad contra `TaxiAdapter` y pasa 31/31.
 
-### Hecho en esta sesión
+**Definición de hecho de Fase 0 (§13 del system prompt maestro) cumplida**: *"el motor arranca contra el adaptador taxi de mentira y las pruebas del contrato están en verde"* — se cumplió con un adaptador real, no uno de mentira, contra una base de datos temporal real. Más exigente que el criterio original.
 
-- Estructura del proyecto, `git init`, `composer.json`, `.gitignore`, `.env.example`. Commit raíz `d435ecb`.
-- `core/Database.php`, `core/BaseModel.php`, `core/Env.php` (loader mínimo de `.env`, sin dependencias).
-- 13 migraciones idempotentes del esquema `tx_*` v1 + runner `database/migrate.php`.
-- Puertos placeholder: `TaxiDb`, `TaxiCifrado`, `TaxiAlmacen`, `TaxiTenant`, `PesosColombianos`.
-- Capacidades: `SoportaDireccionesFrecuentes`, `SoportaDespachoOperativo`.
-- `TaxiAdapter` completo (9 métodos del contrato + 2 capacidades) con lógica real contra `tx_*`.
-- Suite `tests/prueba.php` (E2E contra base temporal, se autodestruye) — verde.
-- `.env` real creado y **base de desarrollo `taxiapp` migrada de punta a punta** (`php database/migrate.php`, 13 tablas + `tx_migraciones`), confirmado idempotente en una segunda corrida.
-- Bug encontrado y corregido: `migrate.php` envolvía el DDL en una transacción PDO; MySQL hace commit implícito en `CREATE TABLE`, lo que rompía `rollBack()`. Ver `TROUBLESHOOTING.md`.
-- Documentación base en `docs/`.
+### Hecho en esta sesión (resumen completo, las 5 partes)
 
-### Próximos pasos (en orden)
+1. Cimientos: `composer.json`, `core/`, 13 migraciones `tx_*`, puertos placeholder, `TaxiAdapter` inicial (con el mapeo §5.2 aproximado), suite de pruebas aislada.
+2. `.env` real, base de desarrollo `taxiapp` migrada, fix de `migrate.php` (MySQL hace commit implícito en DDL; envolverlo en una transacción rompía `rollBack()`).
+3. Panel del radiooperador (`modules/panel/`): login, cola, flota, asignar, cancelar, turnos — probado por HTTP y en navegador real (Playwright). Bug de polling encontrado y corregido.
+4. Panel administrativo mínimo (`modules/admin/`): alta/edición de vehículos y conductores, solo `rol=ADMIN`.
+5. **El motor encontrado, generalizado e integrado de verdad**: `packages/whatsapp-engine/`, `SinCatalogoDeProductos`, `SoportaHerramientasPersonalizadas`, `TaxiAdapter` reescrito contra el contrato real, puertos (`TaxiDb`, `TaxiTenant`, `TaxiCifrado`, `TaxiAlmacen`) implementando las interfaces reales del motor, `tests/prueba.php` arrancando `Engine::arrancar()` de verdad.
 
-1. **Decisión pendiente del usuario**: origen de `elkinlinan/whatsapp-ai-engine` (VCS privado / path local / aún por crear). El usuario confirmó que aún no existe. Sin esto no se puede cerrar Fase 0 del todo.
-2. Cuando el paquete exista: agregar `repositories` + `require` en `composer.json`, `composer install`, hacer que `TaxiAdapter implements DomainAdapter`, ajustar firmas si difieren del mapeo documentado en §5.2.
-3. ~~Configurar `.env` real y correr `php database/migrate.php` contra la base de desarrollo.~~ **Hecho.**
-4. ~~Correr `php tests/prueba.php` para confirmar que el adaptador sigue en verde.~~ **Hecho, en verde.**
-5. Solo cuando el motor exista: cerrar Fase 0 y arrancar Fase 1 (MVP conversacional + despacho híbrido/manual).
-
-### Qué se puede avanzar mientras el motor no exista
-
-Todo lo que dependa exclusivamente del `TaxiAdapter`/esquema `tx_*` ya construidos, o del panel del radiooperador (TailwindCSS + JS vanilla, Capa 4 de §4), que no necesita el motor para su UI ni para las acciones manuales/CRUD de flota y turnos. Lo que sigue bloqueado: cualquier cosa de Capa 2 (agentes de IA, herramientas del §5.4, `AiOrchestrator`).
-
-### Panel del radiooperador (Capa 4) — construido esta sesión
-
-`modules/panel/` completo: login/logout con sesión + CSRF (`core/Auth.php`, tabla nueva `tx_usuarios`), dashboard con cola de solicitudes y tablero de flota (polling 4 s), y acciones manuales (asignar, cancelar con motivo, abrir/cerrar turno, cambiar estado de vehículo, solicitud manual). Probado de punta a punta por HTTP contra la base de desarrollo — ver `SPEC.md` y `TESTING.md` para el detalle y cómo volver a probarlo.
-
-**Credenciales de desarrollo actuales** (base `taxiapp` local): usuario `operador1`, empresa "Radio Tax" (id 1), un vehículo (`084`/`ABC084`) y un conductor (`Carlos Perez`) de prueba ya insertados manualmente. La clave no se documenta aquí (no se vuelve a mostrar tras `seed_dev.php`); si se pierde, hay que crear otro usuario con el script o resetear la clave por SQL.
-
-Pendiente de este pedazo: notificar al cliente por WhatsApp tras asignar (necesita el motor).
-
-### Panel administrativo mínimo — construido esta sesión
-
-`modules/admin/` (solo `rol=ADMIN`, `403` para radiooperador): alta y edición de vehículos y conductores, probado en navegador incluyendo el control de acceso. Cierra el gap real: antes de esto, la única forma de dar de alta un vehículo o conductor era `INSERT` directo por SQL. Empresas, líneas, agentes de IA, configuración de despacho y reportes siguen sin panel (no eran el gap urgente).
-
-### Límite de lo que se puede "finalizar" sin el motor
-
-Con esto, **todo lo de Capa 4 (Centro de Transmisión + administración mínima) que no depende de `elkinlinan/whatsapp-ai-engine` está construido y probado en navegador real**: login, cola de solicitudes, tablero de flota, asignar, cancelar, abrir/cerrar turno, cambiar estado de vehículo, solicitud manual, alta/edición de vehículos y conductores, control de acceso por rol.
-
-Lo que queda pendiente **requiere el motor y no se puede simular de forma útil**:
-- Capa 2 completa: el agente de IA que conversa por WhatsApp, identifica al cliente, recopila los datos y llama a las herramientas del §5.4.
-- Notificar al cliente por WhatsApp tras una asignación (§7, modo híbrido).
-- El propio `TaxiAdapter implements DomainAdapter` formal y las 49 pruebas del contrato del paquete (criterio de "hecho" de Fase 0, §13).
-- Fase 4 completa (GPS, app del conductor, modo automático).
-
-**Esta sesión llegó al límite de lo avanzable sin una decisión del usuario sobre el origen del motor.** Seguir "hasta finalizar" el proyecto completo requiere retomar el punto 1 de la lista de pendientes: de dónde sale `elkinlinan/whatsapp-ai-engine`.
+Siete commits en el repo local: `d435ecb`, `78b2c56`, `090f2cf`, `f34abab`, `e7c8dae`, y dos pendientes de esta última parte (motor + generalización — ver que estén commiteados antes de continuar; si no, `git log --oneline` para confirmar).
 
 ### Decisiones tomadas que vale la pena recordar
 
-- Catálogo de tipos de servicio vive en `tx_empresas.config` (JSON), no en tabla propia — ver `ARQUITECTURA_Y_MODELO_DE_DATOS.md`.
+- Catálogo de tipos de servicio vive en `tx_empresas.config` (JSON), no en tabla propia.
 - Namespace raíz de la plataforma: `TaxiApp\`.
+- **El motor vive en `packages/whatsapp-engine/` dentro de TAXIS** (copia de `Control_BarMax`, no un symlink a otro proyecto — TAXIS queda autocontenido y portable).
+- `TaxiAdapter` expone su lógica real bajo nombres propios (`crearCarrera`, `estadoCarrera`, `cancelarCarrera`, `confirmarCarrera`, `calcularTotalCarrera`) porque los nombres del contrato (`crearTransaccion`, `estadoTransaccion`...) están reclamados por `DomainAdapter` con firmas de carrito de compra que no traducen a un viaje.
+- `TaxiTenant` es "una base, una columna" (`scopeFila()` con `empresa_id`), igual que MayTech POS, no "una base por empresa" como ControlBarMax.
+
+## Próximos pasos (en orden)
+
+1. **Decisión pendiente del usuario, sin urgencia**: ¿la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax` y de ahí a `maytech`/`MisRifas`/`PAduanero`? Hoy las cinco copias (contando la de TAXIS) vuelven a divergir — esta vez de forma deliberada y documentada, no accidental.
+2. Arrancar **Fase 1** de verdad: Capa 1 (webhook de Evolution API) + Capa 2 (`AiOrchestrator` con `AgentManager`, prompt de 9 capas) conectados a `TaxiAdapter`. Es lo único que falta para que un cliente real hable por WhatsApp y termine con una carrera en la cola del radiooperador.
+3. Notificar al conductor/cliente por WhatsApp tras asignar (§7, hoy pendiente porque no hay canal conectado) — Fase 2.
+4. Panel administrativo completo (empresas, líneas, agentes de IA, reportes) — Fase 3.
+
+## Qué NO bloquea nada ahora mismo
+
+A diferencia de las primeras cuatro partes de esta sesión, **ya no hay nada estructural bloqueando el resto del proyecto**. Fase 1 es trabajo real y sustancial (webhook, Evolution API, agentes), pero no depende de una decisión externa como el origen del motor — solo de tiempo y de las credenciales/infraestructura reales de Evolution API cuando llegue el momento de probar contra WhatsApp de verdad.

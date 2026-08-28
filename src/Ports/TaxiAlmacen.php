@@ -4,41 +4,51 @@ declare(strict_types=1);
 
 namespace TaxiApp\Ports;
 
+use ElkinLinan\WhatsappAiEngine\Ports\StoragePort;
 use RuntimeException;
 
 /**
- * Pendiente: conformar al StoragePort real del motor. Hoy es un almacén
- * de archivos local en storage/media (audios, imágenes recibidos por WhatsApp).
+ * Dónde se guardan las notas de voz y fotos que llegan por WhatsApp.
+ * Almacén local en storage/media — sin cupo por empresa todavía (v1: cabe()
+ * solo pone un techo razonable por archivo, no un total acumulado).
  */
-final class TaxiAlmacen
+final class TaxiAlmacen implements StoragePort
 {
-    public function __construct(private readonly string $directorioBase = __DIR__ . '/../../storage/media')
+    private const CUPO_POR_ARCHIVO = 15_000_000;
+
+    public function __construct(private readonly string $raiz = __DIR__ . '/../../storage/media')
     {
-        if (!is_dir($this->directorioBase) && !mkdir($this->directorioBase, 0755, true) && !is_dir($this->directorioBase)) {
-            throw new RuntimeException("No se pudo crear el directorio de almacenamiento: {$this->directorioBase}");
-        }
     }
 
-    public function guardar(string $nombre, string $contenido): string
+    public function raiz(): string
     {
-        $ruta = $this->directorioBase . '/' . ltrim($nombre, '/');
-        $carpeta = dirname($ruta);
-        if (!is_dir($carpeta) && !mkdir($carpeta, 0755, true) && !is_dir($carpeta)) {
-            throw new RuntimeException("No se pudo crear el directorio: {$carpeta}");
-        }
-
-        file_put_contents($ruta, $contenido);
-
-        return $ruta;
+        return $this->raiz;
     }
 
-    public function leer(string $nombre): string
+    public function directorio(): string
     {
-        $ruta = $this->directorioBase . '/' . ltrim($nombre, '/');
-        if (!is_file($ruta)) {
-            throw new RuntimeException("Archivo no encontrado: {$nombre}");
+        if (!is_dir($this->raiz) && !mkdir($this->raiz, 0755, true) && !is_dir($this->raiz)) {
+            throw new RuntimeException("No se pudo crear el directorio de almacenamiento: {$this->raiz}");
         }
 
-        return (string) file_get_contents($ruta);
+        return $this->raiz;
+    }
+
+    public function url(string $rutaRelativa): string
+    {
+        return '/storage/media/' . ltrim($rutaRelativa, '/');
+    }
+
+    public function comprimirImagen(string $binario, int $maxLado = 1024, int $calidad = 78): ?array
+    {
+        // v1: sin recompresión (no hay GD/Imagick garantizado en el entorno de
+        // desarrollo). El motor trata null como "no mejora o no aplica" y
+        // guarda el binario tal cual.
+        return null;
+    }
+
+    public function cabe(int $bytes): bool
+    {
+        return $bytes < self::CUPO_POR_ARCHIVO;
     }
 }

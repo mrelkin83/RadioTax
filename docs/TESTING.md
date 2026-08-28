@@ -8,7 +8,9 @@
 
 ## Qué prueba `tests/prueba.php`
 
-Crea una base `taxiapp_test_<random>` aislada, corre las 13 migraciones, ejercita `TaxiAdapter` de punta a punta (creación idempotente de carrera → confirmación → cancelación, con verificación de trazabilidad en `tx_carrera_eventos`), y **destruye la base al terminar** (bloque `finally`), pase o falle la prueba. Nunca toca una base real.
+Crea una base `taxiapp_test_<random>` aislada, corre las migraciones, y **arranca el motor de verdad** (`Engine::arrancar()`) contra `TaxiAdapter` y los puertos reales de TAXIS. Construye un `ToolEngine` real y ejecuta sus herramientas: confirma que las nueve herramientas de "producto + cantidad" del motor (`consultar_menu`, `crear_pedido`...) no se ofrecen ni se pueden ejecutar contra un negocio `SinCatalogoDeProductos`, que las propias de taxi (`identificar_cliente`, `registrar_solicitud`, `consultar_estado_carrera`, `cancelar_carrera`, ...) sí funcionan de punta a punta con trazabilidad real en `tx_carrera_eventos`, y que un cliente no puede ver la carrera de otro. **Destruye la base al terminar** (bloque `finally`), pase o falle la prueba. Nunca toca una base real.
+
+También hay una suite independiente para el motor mismo: `php packages/whatsapp-engine/tests/prueba.php` — corre sin base de datos (todo con dobles de prueba), y confirma que el paquete sigue siendo reutilizable después de cualquier cambio (55 aserciones). **Correr las dos** después de tocar `packages/whatsapp-engine/` o `TaxiAdapter`.
 
 ## Cómo probar el panel del radiooperador en local
 

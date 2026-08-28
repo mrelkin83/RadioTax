@@ -33,7 +33,7 @@ if ($carrera === false) {
 }
 
 try {
-    (new TaxiAdapter($pdo))->cancelarTransaccion($carreraId, $motivo, 'RADIOOPERADOR', $usuarioActual['id']);
+    (new TaxiAdapter($pdo))->cancelarCarrera($carreraId, $motivo, 'RADIOOPERADOR', $usuarioActual['id']);
 } catch (\Throwable $e) {
     http_response_code(409);
     echo json_encode(['error' => $e->getMessage()]);

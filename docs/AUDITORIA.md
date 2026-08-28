@@ -10,10 +10,13 @@ Fecha: 2026-08-28
 
 ## Paquete `elkinlinan/whatsapp-ai-engine`
 
-- **No está disponible en este entorno.** No hay ruta local ni repositorio VCS indicado.
-- Confirmado con el usuario (28 ago 2026): el paquete "aún no existe / se creará después".
-- **Bloqueante para cerrar Fase 0**: la definición de hecho de Fase 0 exige que "el motor arranca contra el adaptador taxi de mentira y las pruebas del contrato están en verde". Sin el paquete no se puede instanciar `Engine::arrancar()` ni validar contra la interfaz real `DomainAdapter`.
-- Mitigación aplicada: `TaxiAdapter` se construyó implementando todos los métodos documentados en §5.2 del system prompt maestro (mapeo contrato → dominio taxi), con lógica real contra el esquema `tx_*`, pero sin la cláusula `implements DomainAdapter` porque la interfaz no existe todavía. Cuando el paquete esté disponible: (1) agregar el `require` en `composer.json`, (2) hacer que `TaxiAdapter` implemente formalmente la interfaz del motor, (3) resolver cualquier diferencia de firma que aparezca.
+**Actualización (28 ago 2026, misma sesión, más tarde):** el paquete sí existe — el hallazgo inicial de abajo estaba incompleto, no la respuesta del usuario en su momento. Ver `docs/ESTADO_Y_PENDIENTES.md` para el relato completo: vive como *path repository* de Composer, con una copia local en cada proyecto hermano (`Control_BarMax`, `maytech`, `MisRifas`, `PAduanero`), y las cuatro habían divergido. Se copió la de `Control_BarMax` (la más reciente) a `packages/whatsapp-engine/` dentro de TAXIS y se declaró en `composer.json`. **Fase 0 ya no está bloqueada por esto.**
+
+### Hallazgo original (ya superado, se deja como registro)
+
+- No estaba disponible en la búsqueda inicial dentro de la carpeta de TAXIS. No se buscó en el resto de `C:\laragon\www` hasta que el usuario preguntó "en la carpeta del proyecto ¿dónde más?", lo cual llevó a encontrarlo en los proyectos hermanos.
+- Cuando se preguntó por su origen, el usuario respondió "aún no existe / se creará después" — respuesta que, a la luz de lo encontrado después, probablemente reflejaba que el paquete *reutilizable y consolidado* no existe (las 4 copias divergieron), no que no hubiera nada escrito.
+- **Segundo hallazgo, más serio**: `ToolEngine.php` (dentro del motor) tenía el catálogo de herramientas y la persistencia de `crear_pedido` hardcodeados para negocios de "producto + cantidad" con reparto a domicilio — no había forma de agregar `registrar_solicitud` (recogida/destino) sin modificar el paquete. Se resolvió generalizando `ToolEngine` (`SinCatalogoDeProductos`, `SoportaHerramientasPersonalizadas`), con autorización explícita del usuario, sin romper la suite propia del motor (55/55 sigue en verde).
 
 ## Entorno detectado
 

@@ -53,7 +53,7 @@ if ($clienteId === false) {
 }
 
 try {
-    $carrera = (new TaxiAdapter($pdo))->crearTransaccion([
+    $carrera = (new TaxiAdapter($pdo))->crearCarrera([
         'empresa_id' => $empresaId,
         'linea_id' => (int) $lineaId,
         'cliente_id' => (int) $clienteId,
