@@ -45,11 +45,13 @@ Siete commits en el repo local: `d435ecb`, `78b2c56`, `090f2cf`, `f34abab`, `e7c
 
 1. **Bloqueante real para cerrar Fase 1**: conseguir una clave de API de un proveedor de IA (Anthropic, Gemini, o compatible OpenAI) y configurarla en `/modules/admin/whatsapp.php`. Sin esto no se puede probar que el agente conversa de verdad.
 2. Levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp — necesaria para probar con un cliente real, no solo con payloads simulados por curl.
-3. Con las dos anteriores: probar el flujo completo real — un mensaje de WhatsApp de verdad → el agente identifica al cliente, pregunta lo que falta, llama a `registrar_solicitud` → la carrera aparece en la cola del Centro de Transmisión → el radiooperador asigna → (pendiente aparte) notificar al cliente.
-4. Notificar al cliente por WhatsApp tras asignar (§7) — ahora que el canal existe, falta conectar `modules/panel/api/asignar.php` a `EvolutionClient::enviarTexto()`.
-5. Mostrar en el Centro de Transmisión las conversaciones en `HUMANO_ATENDIENDO` (handoff) — hoy están en `wa_conversaciones` pero el panel no las lee.
-6. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
-7. Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
+3. Con las dos anteriores: probar el flujo completo real — un mensaje de WhatsApp de verdad → el agente identifica al cliente, pregunta lo que falta, llama a `registrar_solicitud` → la carrera aparece en la cola del Centro de Transmisión → el radiooperador asigna → el cliente recibe la notificación de verdad (ya está conectado, solo falta que Evolution exista para probarlo).
+4. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
+5. Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
+
+### Ya cerrado en esta sesión (no repetir)
+
+Notificar al cliente tras asignar (§7) y mostrar en el panel las conversaciones en `HUMANO_ATENDIENDO` — ambos construidos y probados en navegador real. Ver `SPEC.md`.
 
 ## Qué NO bloquea nada ahora mismo
 

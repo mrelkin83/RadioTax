@@ -192,7 +192,58 @@
     if (!activo || !['INPUT', 'SELECT', 'TEXTAREA'].includes(activo.tagName)) return false;
     const cola = document.getElementById('cola');
     const flota = document.getElementById('flota');
-    return (cola && cola.contains(activo)) || (flota && flota.contains(activo));
+    const conversaciones = document.getElementById('conversaciones');
+    return (cola && cola.contains(activo)) || (flota && flota.contains(activo)) || (conversaciones && conversaciones.contains(activo));
+  }
+
+  function tarjetaConversacion(conv) {
+    const tarjeta = el('div', { className: 'rounded-lg bg-slate-800 p-3' });
+
+    const cabecera = el('div', { className: 'flex justify-between items-start' });
+    cabecera.appendChild(el('span', { className: 'text-white font-medium text-sm', text: conv.nombre_contacto || conv.telefono }));
+    cabecera.appendChild(el('span', { className: 'text-xs text-slate-500', text: conv.estado === 'IA_PAUSADA' ? 'Pausada' : 'Con humano' }));
+    tarjeta.appendChild(cabecera);
+
+    if (conv.ultimo_mensaje) {
+      tarjeta.appendChild(el('p', { className: 'text-slate-400 text-xs mt-1 line-clamp-2', text: conv.ultimo_mensaje }));
+    }
+    if (conv.atendida_por_nombre) {
+      tarjeta.appendChild(el('p', { className: 'text-slate-500 text-xs mt-1', text: `Atendida por: ${conv.atendida_por_nombre}` }));
+    }
+
+    const caja = el('textarea', { className: 'w-full mt-2 bg-slate-700 text-white text-xs rounded px-2 py-1', attrs: { rows: '2', placeholder: 'Responder por WhatsApp…' } });
+    const acciones = el('div', { className: 'mt-2 flex gap-2' });
+
+    const btnEnviar = el('button', { className: 'text-xs bg-sky-600 hover:bg-sky-500 text-white px-2 py-1 rounded', text: 'Enviar' });
+    btnEnviar.addEventListener('click', async () => {
+      if (!caja.value.trim()) return;
+      btnEnviar.disabled = true;
+      try {
+        await api('/modules/panel/api/conversacion_responder.php', { method: 'POST', body: JSON.stringify({ conversacion_id: conv.id, texto: caja.value.trim() }) });
+        await refrescar({ forzar: true });
+      } catch (e) {
+        alert(e.message);
+        btnEnviar.disabled = false;
+      }
+    });
+
+    const btnLiberar = el('button', { className: 'text-xs bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded', text: 'Devolver a la IA' });
+    btnLiberar.addEventListener('click', async () => {
+      btnLiberar.disabled = true;
+      try {
+        await api('/modules/panel/api/conversacion_liberar.php', { method: 'POST', body: JSON.stringify({ conversacion_id: conv.id }) });
+        await refrescar({ forzar: true });
+      } catch (e) {
+        alert(e.message);
+        btnLiberar.disabled = false;
+      }
+    });
+
+    acciones.appendChild(btnEnviar);
+    acciones.appendChild(btnLiberar);
+    tarjeta.appendChild(caja);
+    tarjeta.appendChild(acciones);
+    return tarjeta;
   }
 
   async function refrescar({ forzar = false } = {}) {
@@ -200,10 +251,11 @@
     // escribir o una selección de vehículo/conductor a medio hacer.
     if (!forzar && usuarioEstaEditando()) return;
 
-    const [datosCola, datosFlota, datosConductores] = await Promise.all([
+    const [datosCola, datosFlota, datosConductores, datosConversaciones] = await Promise.all([
       api('/modules/panel/api/cola.php'),
       api('/modules/panel/api/flota.php'),
       api('/modules/panel/api/conductores.php'),
+      api('/modules/panel/api/conversaciones.php'),
     ]);
 
     conductoresCache = datosConductores.conductores;
@@ -229,6 +281,16 @@
     contenedorFlota.replaceChildren();
     for (const v of datosFlota.flota) {
       contenedorFlota.appendChild(tarjetaVehiculo(v));
+    }
+
+    const contenedorConversaciones = document.getElementById('conversaciones');
+    contenedorConversaciones.replaceChildren();
+    if (datosConversaciones.conversaciones.length === 0) {
+      contenedorConversaciones.appendChild(el('p', { className: 'text-slate-500 text-sm', text: 'Ninguna por ahora.' }));
+    } else {
+      for (const conv of datosConversaciones.conversaciones) {
+        contenedorConversaciones.appendChild(tarjetaConversacion(conv));
+      }
     }
   }
 

@@ -51,12 +51,17 @@ Lo estrictamente necesario para que el Centro de Transmisión sea usable sin toc
 - `modules/admin/whatsapp.php`: configura proveedor LLM, Evolution API y genera el token del webhook, por empresa. Usa `WaConfig::guardar()`/`regenerarWebhookToken()` del motor sin reimplementar nada.
 - **Probado con un payload de Evolution simulado y una clave de Anthropic inventada**: la llamada real a la API de Anthropic la rechazó (confirma que la integración del proveedor está bien conectada, no que sea un fallo de red). El error se manejó con gracia: mensaje al cliente, `HumanHandoff`, todo registrado en `wa_eventos`. Confirmado también: token inválido → 404, motor apagado → 200 ignorado, mensaje repetido → deduplicado sin nuevas filas.
 
+## Notificación al cliente y handoff visible en el panel
+
+Dos gaps que quedaban documentados como pendientes de la parte anterior, cerrados en la misma sesión:
+
+- **`modules/panel/api/asignar.php`** ahora notifica al cliente por WhatsApp tras asignar (§7): usa `ConectorMotor` + `EvolutionClient::enviarTexto()`. Es "mejor esfuerzo" a propósito — si el motor no está configurado o el envío falla, la asignación YA quedó hecha (no se revierte); el resultado (`enviado` / `motor_no_configurado` / `fallo: ...`) queda en `tx_carrera_eventos` como evento `NOTIFICACION_CLIENTE`, actor `SISTEMA`. **Probado en navegador real** con Evolution apuntando a una URL inexistente: la asignación se completó igual, el fallo de red quedó registrado sin romper nada.
+- **El panel muestra ahora las conversaciones en `HUMANO_ATENDIENDO`/`IA_PAUSADA`** (`modules/panel/api/conversaciones.php`, `conversacion_mensajes.php`, `conversacion_responder.php`, `conversacion_liberar.php`, sección nueva en `index.php`): el radiooperador ve a quién transfirió el agente, puede responder manualmente por WhatsApp, o devolver el control a la IA (`HumanHandoff::liberar()` del motor, sin reimplementar nada). **Probado en navegador real**: dos conversaciones transferidas por fallo del LLM aparecieron en el panel, "Devolver a la IA" cambió el estado correctamente (verificado en BD), y "Enviar" mostró el error real de conexión cuando Evolution no respondía — sin romper la página.
+
 ### No hecho / fuera de alcance de esta sesión
 
 - **La conversación real**: falta una clave de API válida (Anthropic/Gemini/OpenAI) para probar que el agente entiende al cliente y llama a `registrar_solicitud`. Sin eso no se puede cerrar la definición de hecho de Fase 1 (§13: "una carrera real recorre RECIBIDA→FINALIZADA con radiooperador").
 - Una instancia real de Evolution API conectada a un número de WhatsApp — necesaria para probar con un cliente de verdad, no solo con payloads simulados.
-- Notificar al cliente por WhatsApp tras asignar (§7) — la pieza que falta en `modules/panel/api/asignar.php`, ahora que el canal ya existe (antes ni eso había).
-- El panel del radiooperador no muestra todavía las conversaciones en `HUMANO_ATENDIENDO` (handoff) — están en `wa_conversaciones`, pero el panel solo lee `tx_carreras`. Gap real de §8, no cerrado esta sesión.
 - Voz e imagen (STT/TTS/Visión) — necesitan credenciales de proveedor aparte.
 - Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
 - Decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero` — pendiente, es una decisión aparte de TAXIS.

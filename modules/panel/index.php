@@ -49,6 +49,10 @@ $csrf = Auth::tokenCsrf();
     <aside class="space-y-3">
       <h2 class="font-semibold text-slate-200">Tablero de flota</h2>
       <div id="flota" class="space-y-2"></div>
+
+      <h2 class="font-semibold text-slate-200 pt-4">Conversaciones que necesitan atención</h2>
+      <p class="text-xs text-slate-500">Transferidas por el agente de IA o pausadas manualmente.</p>
+      <div id="conversaciones" class="space-y-2"></div>
     </aside>
   </main>
 
