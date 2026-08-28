@@ -79,7 +79,7 @@
         btnAsignar.disabled = true;
         try {
           await api('/modules/panel/api/asignar.php', { method: 'POST', body: JSON.stringify({ carrera_id: carrera.id, vehiculo_id: Number(select.value) }) });
-          await refrescar();
+          await refrescar({ forzar: true });
         } catch (e) {
           alert(e.message);
           btnAsignar.disabled = false;
@@ -99,7 +99,7 @@
       btnCancelar.disabled = true;
       try {
         await api('/modules/panel/api/cancelar.php', { method: 'POST', body: JSON.stringify({ carrera_id: carrera.id, motivo: inputMotivo.value.trim() }) });
-        await refrescar();
+        await refrescar({ forzar: true });
       } catch (e) {
         alert(e.message);
         btnCancelar.disabled = false;
@@ -138,7 +138,7 @@
         btnCerrar.disabled = true;
         try {
           await api('/modules/panel/api/turno_cerrar.php', { method: 'POST', body: JSON.stringify({ turno_id: v.turno_id }) });
-          await refrescar();
+          await refrescar({ forzar: true });
         } catch (e) {
           alert(e.message);
           btnCerrar.disabled = false;
@@ -157,7 +157,7 @@
         btnAbrir.disabled = true;
         try {
           await api('/modules/panel/api/turno_abrir.php', { method: 'POST', body: JSON.stringify({ conductor_id: Number(select.value), vehiculo_id: v.id }) });
-          await refrescar();
+          await refrescar({ forzar: true });
         } catch (e) {
           alert(e.message);
           btnAbrir.disabled = false;
@@ -176,7 +176,7 @@
     selectEstado.addEventListener('change', async () => {
       try {
         await api('/modules/panel/api/vehiculo_estado.php', { method: 'POST', body: JSON.stringify({ vehiculo_id: v.id, estado: selectEstado.value }) });
-        await refrescar();
+        await refrescar({ forzar: true });
       } catch (e) {
         alert(e.message);
       }
@@ -187,7 +187,19 @@
     return tarjeta;
   }
 
-  async function refrescar() {
+  function usuarioEstaEditando() {
+    const activo = document.activeElement;
+    if (!activo || !['INPUT', 'SELECT', 'TEXTAREA'].includes(activo.tagName)) return false;
+    const cola = document.getElementById('cola');
+    const flota = document.getElementById('flota');
+    return (cola && cola.contains(activo)) || (flota && flota.contains(activo));
+  }
+
+  async function refrescar({ forzar = false } = {}) {
+    // El polling automático no debe borrarle al operador un motivo a medio
+    // escribir o una selección de vehículo/conductor a medio hacer.
+    if (!forzar && usuarioEstaEditando()) return;
+
     const [datosCola, datosFlota, datosConductores] = await Promise.all([
       api('/modules/panel/api/cola.php'),
       api('/modules/panel/api/flota.php'),
@@ -241,7 +253,7 @@
       try {
         await api('/modules/panel/api/solicitud_nueva.php', { method: 'POST', body: JSON.stringify(datos) });
         modal.close();
-        await refrescar();
+        await refrescar({ forzar: true });
       } catch (e) {
         error.textContent = e.message;
         error.classList.remove('hidden');
