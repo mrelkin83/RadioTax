@@ -365,6 +365,8 @@
     conductoresCache = datosConductores.conductores;
     vehiculosDisponiblesCache = datosFlota.flota.filter((v) => v.estado_vehiculo === 'DISPONIBLE');
 
+    if (window.SolicitudAlertas) window.SolicitudAlertas.procesar(datosCola.cola);
+
     const contenedorCola = document.getElementById('cola');
     contenedorCola.replaceChildren();
     if (datosCola.cola.length === 0) {

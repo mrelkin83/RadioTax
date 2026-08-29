@@ -34,6 +34,7 @@ $csrf = Auth::tokenCsrf();
       <?php if ($usuario['rol'] === 'ADMIN'): ?>
         <a href="/modules/admin/vehiculos.php" class="hover:text-foreground transition-colors">Administración</a>
       <?php endif; ?>
+      <a href="/modules/panel/cuenta.php" class="hover:text-foreground transition-colors">Mi cuenta</a>
       <a href="/modules/panel/logout.php" class="text-red-400 hover:text-red-300 transition-colors">Salir</a>
     </div>
   </header>
@@ -85,6 +86,7 @@ $csrf = Auth::tokenCsrf();
     </form>
   </dialog>
 
+  <?php require __DIR__ . '/../_alertas_solicitud.php'; ?>
   <script src="/modules/panel/assets/panel.js"></script>
 </body>
 </html>
