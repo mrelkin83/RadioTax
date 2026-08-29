@@ -65,6 +65,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
         exit;
     }
 
+    if ($accion === 'guardar_horario') {
+        if (isset($_POST['modo_24_7'])) {
+            WaConfig::guardar($db, ['horario_atencion' => '']);
+        } else {
+            $horario = [];
+            for ($dia = 0; $dia <= 6; $dia++) {
+                if (!isset($_POST['dia_abierto'][$dia])) {
+                    continue;
+                }
+                $desde = trim((string) ($_POST['dia_desde'][$dia] ?? ''));
+                $hasta = trim((string) ($_POST['dia_hasta'][$dia] ?? ''));
+                if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $desde) || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hasta)) {
+                    continue;
+                }
+                $horario[(string) $dia] = ['desde' => $desde, 'hasta' => $hasta];
+            }
+            WaConfig::guardar($db, ['horario_atencion' => $horario === [] ? '' : json_encode($horario, JSON_UNESCAPED_UNICODE)]);
+        }
+        header('Location: /modules/admin/whatsapp.php?guardado=horario');
+        exit;
+    }
+
     if ($accion === 'regenerar_token') {
         $tokenNuevo = WaConfig::regenerarWebhookToken($db);
     }
@@ -114,6 +136,16 @@ $iaSoloLectura = $iaTieneConfig && !isset($_GET['editar_ia']);
 $avisoTieneConfig = !empty($cfg['handoff_numero']);
 $avisoSoloLectura = $avisoTieneConfig && !isset($_GET['editar_aviso']);
 
+$diasSemana = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 0 => 'Domingo'];
+$horarioActual = [];
+if (!empty($cfg['horario_atencion'])) {
+    $decodificado = json_decode((string) $cfg['horario_atencion'], true);
+    if (is_array($decodificado)) {
+        $horarioActual = $decodificado;
+    }
+}
+$es24x7 = $horarioActual === [];
+
 if (isset($_GET['guardado'])) {
     $guardadoSeccion = (string) $_GET['guardado'];
 }
@@ -130,7 +162,7 @@ if ($evolucionTieneConfig && $qrBase64 === null) {
     }
 }
 
-$mensajesGuardado = ['evolution' => 'Evolution API guardado.', 'ia' => 'Proveedor de IA guardado.', 'aviso' => 'Aviso al radiooperador guardado.'];
+$mensajesGuardado = ['evolution' => 'Evolution API guardado.', 'ia' => 'Proveedor de IA guardado.', 'aviso' => 'Aviso al radiooperador guardado.', 'horario' => 'Horario de atención guardado.'];
 ?>
 <!doctype html>
 <html lang="es">
@@ -325,7 +357,38 @@ $mensajesGuardado = ['evolution' => 'Evolution API guardado.', 'ia' => 'Proveedo
       </section>
     </div>
 
-    <!-- Fila 3: aviso al radiooperador -->
+    <!-- Fila 3: horario de atención -->
+    <section class="bg-card border border-border rounded-xl p-6">
+      <h2 class="font-semibold text-lg mb-2">Horario de atención</h2>
+      <p class="text-sm text-slate-400 mb-4">Fuera de este horario, el agente avisa que está cerrado y no toma solicitudes nuevas — sigue respondiendo dudas.</p>
+      <form method="post" class="space-y-4" id="form-horario">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="accion" value="guardar_horario">
+
+        <label class="flex items-center gap-3 text-base">
+          <input type="checkbox" id="modo_24_7" name="modo_24_7" <?= $es24x7 ? 'checked' : '' ?> class="accent-accent w-5 h-5">
+          Atender las 24 horas, todos los días (sin restricción de horario)
+        </label>
+
+        <fieldset id="dias-horario" <?= $es24x7 ? 'disabled' : '' ?> class="space-y-2.5 <?= $es24x7 ? 'opacity-60' : '' ?>">
+          <?php foreach ($diasSemana as $dia => $etiqueta): $franja = $horarioActual[(string) $dia] ?? null; ?>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="flex items-center gap-2 w-32 text-sm shrink-0">
+                <input type="checkbox" name="dia_abierto[<?= $dia ?>]" <?= $franja ? 'checked' : '' ?> class="accent-accent w-4 h-4">
+                <?= htmlspecialchars($etiqueta, ENT_QUOTES, 'UTF-8') ?>
+              </label>
+              <input type="time" name="dia_desde[<?= $dia ?>]" aria-label="<?= htmlspecialchars($etiqueta, ENT_QUOTES, 'UTF-8') ?>, desde" value="<?= htmlspecialchars((string) ($franja['desde'] ?? '08:00'), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm font-mono">
+              <span class="text-slate-500 text-sm">hasta</span>
+              <input type="time" name="dia_hasta[<?= $dia ?>]" aria-label="<?= htmlspecialchars($etiqueta, ENT_QUOTES, 'UTF-8') ?>, hasta" value="<?= htmlspecialchars((string) ($franja['hasta'] ?? '18:00'), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm font-mono">
+            </div>
+          <?php endforeach; ?>
+        </fieldset>
+
+        <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
+      </form>
+    </section>
+
+    <!-- Fila 4: aviso al radiooperador -->
     <section class="bg-card border border-border rounded-xl p-6">
       <h2 class="font-semibold text-lg mb-4">Aviso al radiooperador</h2>
       <form method="post" class="space-y-4">
@@ -441,6 +504,16 @@ $mensajesGuardado = ['evolution' => 'Evolution API guardado.', 'ia' => 'Proveedo
     selProveedor.addEventListener('change', () => cargarModelos());
     btnCargar?.addEventListener('click', () => cargarModelos());
     if (selProveedor.value) cargarModelos({ silencioso: true }); // al entrar a editar, actualiza sola
+  })();
+
+  (() => {
+    const modo24x7 = document.getElementById('modo_24_7');
+    const diasHorario = document.getElementById('dias-horario');
+    if (!modo24x7 || !diasHorario) return;
+    modo24x7.addEventListener('change', () => {
+      diasHorario.disabled = modo24x7.checked;
+      diasHorario.classList.toggle('opacity-60', modo24x7.checked);
+    });
   })();
   </script>
 </body>
