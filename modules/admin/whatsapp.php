@@ -352,6 +352,30 @@ $mensajesGuardado = ['evolution' => 'Evolution API guardado.', 'ia' => 'Proveedo
 
   <script>
   (() => {
+    // Lista de respaldo: se muestra al instante, sin red ni API key, apenas se
+    // elige un proveedor. Si hay una API key (recién tecleada o ya guardada),
+    // se reemplaza por la lista real y actualizada que devuelve el proveedor —
+    // pero elegir un proveedor NUNCA debe dejar el desplegable vacío.
+    const MODELOS_RESPALDO = {
+      anthropic: [
+        { id: 'claude-opus-5', label: 'Claude Opus 5' },
+        { id: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+        { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
+      ],
+      gemini: [
+        { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' },
+        { id: 'gemini-3-pro', label: 'Gemini 3 Pro' },
+        { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+      ],
+      openai: [
+        { id: 'gpt-5.1', label: 'GPT-5.1' },
+        { id: 'gpt-5', label: 'GPT-5' },
+        { id: 'gpt-4.1', label: 'GPT-4.1' },
+        { id: 'gpt-4o', label: 'GPT-4o' },
+      ],
+    };
+
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const selProveedor = document.getElementById('ia_proveedor');
     const selModelo = document.getElementById('ia_modelo');
@@ -360,14 +384,40 @@ $mensajesGuardado = ['evolution' => 'Evolution API guardado.', 'ia' => 'Proveedo
     const msg = document.getElementById('msg-modelos');
     if (!selProveedor || selProveedor.disabled) return; // bloqueado: no hace falta cargar nada
 
-    async function cargarModelos() {
+    function pintarModelos(modelos, valorActual, sufijoActual) {
+      selModelo.innerHTML = '';
+      const yaEstaba = modelos.some((m) => m.id === valorActual);
+      if (valorActual && !yaEstaba) {
+        const opt = document.createElement('option');
+        opt.value = valorActual;
+        opt.textContent = valorActual + (sufijoActual || '');
+        opt.selected = true;
+        selModelo.appendChild(opt);
+      }
+      for (const m of modelos) {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.label;
+        if (m.id === valorActual) opt.selected = true;
+        selModelo.appendChild(opt);
+      }
+    }
+
+    function mostrarRespaldo(valorActual) {
+      const lista = MODELOS_RESPALDO[selProveedor.value] || [];
+      pintarModelos(lista, valorActual, ' (actual)');
+      msg.textContent = 'Mostrando modelos comunes. Ingresá o guardá tu API key para ver la lista real y actualizada.';
+    }
+
+    async function cargarModelos({ silencioso = false } = {}) {
       if (!selProveedor.value) {
         msg.textContent = 'Elegí un proveedor primero.';
         return;
       }
       const valorActual = selModelo.value;
+      mostrarRespaldo(valorActual); // se ve algo de inmediato, nunca queda vacío
       selModelo.disabled = true;
-      msg.textContent = 'Cargando modelos…';
+      if (!silencioso) msg.textContent = 'Cargando modelos actualizados…';
       try {
         const resp = await fetch('/modules/admin/api/modelos_ia.php', {
           method: 'POST',
@@ -376,35 +426,21 @@ $mensajesGuardado = ['evolution' => 'Evolution API guardado.', 'ia' => 'Proveedo
         });
         const datos = await resp.json();
         if (!datos.ok) {
-          msg.textContent = datos.error || 'No se pudieron cargar los modelos.';
+          msg.textContent = (datos.error || 'No se pudo actualizar la lista.') + ' Mostrando modelos comunes mientras tanto.';
           return;
         }
-        selModelo.innerHTML = '';
-        const yaEstaba = datos.modelos.some((m) => m.id === valorActual);
-        if (valorActual && !yaEstaba) {
-          const opt = document.createElement('option');
-          opt.value = valorActual;
-          opt.textContent = valorActual + ' (actual)';
-          opt.selected = true;
-          selModelo.appendChild(opt);
-        }
-        for (const m of datos.modelos) {
-          const opt = document.createElement('option');
-          opt.value = m.id;
-          opt.textContent = m.label;
-          if (m.id === valorActual) opt.selected = true;
-          selModelo.appendChild(opt);
-        }
-        msg.textContent = datos.modelos.length + ' modelos disponibles.';
+        pintarModelos(datos.modelos, valorActual, ' (actual)');
+        msg.textContent = datos.modelos.length + ' modelos disponibles (actualizado ahora).';
       } catch (e) {
-        msg.textContent = 'No se pudo conectar para cargar los modelos.';
+        msg.textContent = 'No se pudo conectar para actualizar la lista. Mostrando modelos comunes mientras tanto.';
       } finally {
         selModelo.disabled = false;
       }
     }
 
-    selProveedor.addEventListener('change', cargarModelos);
-    btnCargar?.addEventListener('click', cargarModelos);
+    selProveedor.addEventListener('change', () => cargarModelos());
+    btnCargar?.addEventListener('click', () => cargarModelos());
+    if (selProveedor.value) cargarModelos({ silencioso: true }); // al entrar a editar, actualiza sola
   })();
   </script>
 </body>
