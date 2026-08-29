@@ -49,13 +49,20 @@ Siete commits en el repo local: `d435ecb`, `78b2c56`, `090f2cf`, `f34abab`, `e7c
 
 Notificación al conductor por WhatsApp al asignar + respuesta ACEPTO/RECHAZO que reasigna sin tocar código, probado de punta a punta con payloads simulados. Ver `SPEC.md` para el detalle, incluido un bug real de normalización de teléfonos encontrado y corregido en el camino (comparar `RIGHT(whatsapp, 10)`, no el número completo).
 
+## FASE 3 — segunda empresa de punta a punta (CERRADA, criterio de hecho cumplido)
+
+`modules/plataforma/` (rol nuevo `SUPERADMIN`, sin empresa) + `database/seed_superadmin.php`. Probado en navegador real: se creó "Taxis Del Valle" desde cero, con su línea y su admin, y se confirmó aislamiento total frente a Radio Tax (panel vacío, cero fuga de datos). De paso se encontró y corrigió un "Radio Tax" hardcodeado en varias pantallas — una violación real de la regla de marca blanca que solo se veía operando un segundo tenant de verdad. Ver `SPEC.md` para el detalle completo.
+
+Pendiente dentro de Fase 3 (no bloqueante, menor): reportes exportables (CSV), y que el panel administrativo cubra agentes de IA (`wa_agentes`) desde una pantalla — hoy el motor crea uno por defecto automáticamente y basta para operar, pero no hay UI para personalizarlo.
+
 ## Próximos pasos (en orden)
 
 1. **Único bloqueante real que queda para producción**: levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp de verdad, apuntando su webhook a `https://TU-DOMINIO/modules/webhook/mensajes.php?token=<el-de-wa_config>`. Con eso, todo lo construido y probado con payloads simulados (Fase 1 y Fase 2) funciona con clientes y conductores reales sin tocar código.
-2. Panel administrativo completo (empresas, líneas, agentes de IA) — reportes ya están, falta el resto de Fase 3. En particular: alta de una segunda empresa de prueba de punta a punta desde el panel (criterio de hecho de Fase 3).
-3. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
-4. Voz e imagen (STT/TTS/Visión) — credenciales de proveedor aparte, no urgente para el MVP.
-5. **Fase 4 (GPS, modo automático) está fuera del alcance de una sesión de código**: necesita una app Android nativa del conductor y pruebas con GPS real. No se puede "terminar" escribiendo PHP — es un proyecto de desarrollo móvil aparte.
+2. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
+3. Voz e imagen (STT/TTS/Visión) — credenciales de proveedor aparte, no urgente para el MVP.
+4. **Fase 4 (GPS, modo automático) está fuera del alcance de una sesión de código**: necesita una app Android nativa del conductor y pruebas con GPS real. No se puede "terminar" escribiendo PHP — es un proyecto de desarrollo móvil aparte.
+
+Con Fases 0, 1, 2 y 3 (núcleo) cerradas y probadas de verdad — no solo escritas — el proyecto está en el límite real de lo que una sesión de código puede completar sin infraestructura externa (Evolution API) y sin entrar en desarrollo de app móvil nativa (Fase 4).
 
 ### Ya cerrado en esta sesión (no repetir)
 

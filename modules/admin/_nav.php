@@ -4,7 +4,7 @@ $tabs = ['vehiculos' => 'Vehículos', 'conductores' => 'Conductores', 'whatsapp'
 ?>
 <header class="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
   <div class="flex items-center gap-6">
-    <h1 class="text-lg font-semibold">Administración · Radio Tax</h1>
+    <h1 class="text-lg font-semibold">Administración · <?= htmlspecialchars($usuarioActual['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></h1>
     <nav class="flex gap-4 text-sm">
       <?php foreach ($tabs as $clave => $etiqueta): ?>
         <a href="/modules/admin/<?= htmlspecialchars($clave, ENT_QUOTES, 'UTF-8') ?>.php"

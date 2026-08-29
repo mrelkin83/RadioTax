@@ -34,7 +34,9 @@ final class Auth
         self::iniciar();
 
         $sentencia = Database::conexion()->prepare(
-            'SELECT * FROM tx_usuarios WHERE usuario = :usuario AND activo = 1 LIMIT 1'
+            'SELECT u.*, e.nombre AS empresa_nombre FROM tx_usuarios u
+             LEFT JOIN tx_empresas e ON e.id = u.empresa_id
+             WHERE u.usuario = :usuario AND u.activo = 1 LIMIT 1'
         );
         $sentencia->execute(['usuario' => $usuario]);
         $fila = $sentencia->fetch();
@@ -45,7 +47,9 @@ final class Auth
 
         session_regenerate_id(true);
         $_SESSION['usuario_id'] = (int) $fila['id'];
-        $_SESSION['empresa_id'] = (int) $fila['empresa_id'];
+        // Un SUPERADMIN no pertenece a ninguna empresa (§7: marca blanca real).
+        $_SESSION['empresa_id'] = $fila['empresa_id'] !== null ? (int) $fila['empresa_id'] : null;
+        $_SESSION['empresa_nombre'] = $fila['empresa_nombre']; // null para un SUPERADMIN — nunca "Radio Tax" fijo (§7)
         $_SESSION['nombre'] = $fila['nombre'];
         $_SESSION['rol'] = $fila['rol'];
         $_SESSION['csrf'] = bin2hex(random_bytes(16));
@@ -63,10 +67,47 @@ final class Auth
 
         return [
             'id' => (int) $_SESSION['usuario_id'],
-            'empresa_id' => (int) $_SESSION['empresa_id'],
+            'empresa_id' => $_SESSION['empresa_id'] !== null ? (int) $_SESSION['empresa_id'] : null,
+            'empresa_nombre' => $_SESSION['empresa_nombre'] ?? null,
             'nombre' => (string) $_SESSION['nombre'],
             'rol' => (string) $_SESSION['rol'],
         ];
+    }
+
+    public static function requerirSuperadmin(): array
+    {
+        $usuario = self::requerirSesion();
+        if ($usuario['rol'] !== 'SUPERADMIN') {
+            http_response_code(403);
+            echo 'No autorizado. Esta sección es solo para el dueño de la plataforma.';
+            exit;
+        }
+
+        return $usuario;
+    }
+
+    /** Como requerirSesion(), pero además exige pertenecer a una empresa (un SUPERADMIN no tiene). */
+    public static function requerirSesionDeEmpresa(): array
+    {
+        $usuario = self::requerirSesion();
+        if ($usuario['empresa_id'] === null) {
+            http_response_code(403);
+            echo 'No autorizado. Un usuario de plataforma no pertenece a ninguna empresa.';
+            exit;
+        }
+
+        return $usuario;
+    }
+
+    /** Como requerirSesionApi(), pero además exige pertenecer a una empresa. */
+    public static function requerirSesionApiDeEmpresa(): array
+    {
+        $usuario = self::requerirSesionApi();
+        if ($usuario['empresa_id'] === null) {
+            self::responderJson(['error' => 'Un usuario de plataforma no pertenece a ninguna empresa'], 403);
+        }
+
+        return $usuario;
     }
 
     public static function requerirSesion(): array

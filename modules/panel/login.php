@@ -6,8 +6,14 @@ require __DIR__ . '/_bootstrap.php';
 
 use TaxiApp\Core\Auth;
 
-if (Auth::usuarioActual() !== null) {
-    header('Location: /modules/panel/index.php');
+function destinoSegunRol(array $usuario): string
+{
+    return $usuario['rol'] === 'SUPERADMIN' ? '/modules/plataforma/empresas.php' : '/modules/panel/index.php';
+}
+
+$actual = Auth::usuarioActual();
+if ($actual !== null) {
+    header('Location: ' . destinoSegunRol($actual));
     exit;
 }
 
@@ -18,8 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($usuario === '' || $clave === '') {
         $error = 'Usuario y clave son obligatorios.';
-    } elseif (Auth::intentarLogin($usuario, $clave) !== null) {
-        header('Location: /modules/panel/index.php');
+    } elseif (($fila = Auth::intentarLogin($usuario, $clave)) !== null) {
+        header('Location: ' . destinoSegunRol(['rol' => $fila['rol']]));
         exit;
     } else {
         $error = 'Usuario o clave incorrectos.';
@@ -31,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Radio Tax · Centro de transmisión</title>
+<title>Centro de transmisión</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 min-h-screen flex items-center justify-center">

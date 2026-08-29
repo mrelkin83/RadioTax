@@ -7,7 +7,7 @@ require __DIR__ . '/../../../vendor/autoload.php';
 use TaxiApp\Core\Auth;
 
 Auth::iniciar();
-$usuarioActual = Auth::requerirSesionApi();
+$usuarioActual = Auth::requerirSesionApiDeEmpresa();
 header('Content-Type: application/json; charset=utf-8');
 
 function entrada(): array

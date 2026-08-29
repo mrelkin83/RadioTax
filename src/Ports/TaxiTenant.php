@@ -48,7 +48,10 @@ final class TaxiTenant implements TenantPort
         $sentencia->execute(['id' => $this->empresaId]);
         $nombre = $sentencia->fetchColumn();
 
-        return $nombre !== false ? $nombre : 'Radio Tax';
+        // Sin nombre fijo (§7: marca blanca, ninguna empresa es especial en código).
+        // Solo se llega aquí si la empresa desapareció de tx_empresas entre que se
+        // resolvió el tenant y esta llamada — no debería pasar en la práctica.
+        return $nombre !== false ? $nombre : 'esta empresa';
     }
 
     public function baseDatos(): ?string

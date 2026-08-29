@@ -6,7 +6,7 @@ require __DIR__ . '/_bootstrap.php';
 
 use TaxiApp\Core\Auth;
 
-$usuario = Auth::requerirSesion();
+$usuario = Auth::requerirSesionDeEmpresa();
 $csrf = Auth::tokenCsrf();
 ?>
 <!doctype html>
@@ -15,12 +15,12 @@ $csrf = Auth::tokenCsrf();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
-<title>Centro de transmisión · Radio Tax</title>
+<title>Centro de transmisión · <?= htmlspecialchars($usuario['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
   <header class="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
-    <h1 class="text-lg font-semibold">Centro de transmisión</h1>
+    <h1 class="text-lg font-semibold">Centro de transmisión · <?= htmlspecialchars($usuario['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></h1>
     <div class="flex items-center gap-4 text-sm text-slate-400">
       <span><?= htmlspecialchars($usuario['nombre'], ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars($usuario['rol'], ENT_QUOTES, 'UTF-8') ?></span>
       <?php if ($usuario['rol'] === 'ADMIN'): ?>
