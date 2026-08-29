@@ -28,6 +28,14 @@ function contar(PDO $pdo, string $sql, array $params): int
 
 $rango = ['empresa' => $empresaId, 'desde' => $desde, 'hasta' => $hastaFin];
 
+// ── Estado actual de la flota (no depende del rango de fechas) ──────────
+$conductoresActivos = contar($pdo,
+    "SELECT COUNT(*) FROM tx_conductores WHERE empresa_id = :empresa AND estado = 'ACTIVO'",
+    ['empresa' => $empresaId]);
+$conductoresTotal = contar($pdo,
+    'SELECT COUNT(*) FROM tx_conductores WHERE empresa_id = :empresa',
+    ['empresa' => $empresaId]);
+
 // ── Solicitudes por estado ──────────────────────────────────────────────
 $totalSolicitudes = contar($pdo,
     'SELECT COUNT(*) FROM tx_carreras WHERE empresa_id = :empresa AND creado_en BETWEEN :desde AND :hasta',
@@ -176,6 +184,11 @@ function formatoDuracion(?int $segundos): string
       <div class="bg-card border border-border rounded-xl p-6">
         <p class="text-sm text-slate-400">Tiempo promedio hasta asignar</p>
         <p class="text-4xl font-semibold text-foreground font-mono mt-1"><?= htmlspecialchars(formatoDuracion($segAsignacion), ENT_QUOTES, 'UTF-8') ?></p>
+      </div>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">Conductores activos</p>
+        <p class="text-4xl font-semibold text-emerald-400 font-mono mt-1"><?= $conductoresActivos ?></p>
+        <p class="text-sm text-slate-500 mt-2">de <?= $conductoresTotal ?> registrados</p>
       </div>
     </section>
 
