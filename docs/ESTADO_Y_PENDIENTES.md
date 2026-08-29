@@ -1,15 +1,19 @@
 # Estado y pendientes
 
-Última actualización: 2026-08-28 (misma sesión — Fase 0 CERRADA, Fase 1 en progreso: webhook + agente conectados, falta una clave de API real).
+Última actualización: 2026-08-28 (misma sesión — Fase 0 CERRADA, Fase 1 **probada con una conversación real**).
 
-## Fase actual: FASE 1 — webhook + agente conectados (falta credenciales reales para cerrarla)
+## Fase actual: FASE 1 — probada de punta a punta con IA real (falta Evolution API real para producción)
 
-Capa 1 (webhook de Evolution API) y Capa 2 (`AiOrchestrator` conectado a `TaxiAdapter`) están construidas y probadas de punta a punta con un payload simulado — la llamada real a Anthropic con una clave inventada fue **rechazada por Anthropic** (no un error de red), confirmando que la integración del proveedor funciona. Lo único que falta para que un cliente real hable con el agente por WhatsApp:
+**El usuario proveyó una API key real de Gemini** (guardada cifrada en `wa_config.llm_api_key`, empresa 1 — nunca en un archivo del repo). Con `llm_proveedor=gemini`, `llm_modelo=gemini-3.6-flash` (el modelo recomendado por Google; `gemini-2.5-flash` ya no está disponible para keys nuevas), se simuló una conversación completa por webhook:
 
-1. **Una clave de API real** (Anthropic, Gemini, o un compatible con OpenAI) — se configura en `/modules/admin/whatsapp.php`.
-2. **Una instancia real de Evolution API** conectada a un número de WhatsApp, con su webhook apuntando a `https://TU-DOMINIO/modules/webhook/mensajes.php?token=<el-generado-en-admin>`.
+> Cliente: "Hola, necesito un taxi urgente"
+> Agente: llama `identificar_cliente` + `consultar_tipos_servicio` → "¡Hola, Maria! Claro que sí 🚕 ¿Desde dónde te recogemos?"
+> Cliente: "Me recoges en la Calle 10 con Carrera 5, voy para el Aeropuerto"
+> Agente: llama `registrar_solicitud` → crea la carrera de verdad → "¡Listo, Maria! Ya registré tu solicitud de taxi 🚕 📍 Recogida: Calle 10 con Carrera 5 🎯 Destino: Aeropuerto..."
 
-Sin esas dos cosas no se puede cerrar la definición de hecho de Fase 1 (§13: "una carrera real recorre RECIBIDA→FINALIZADA con radiooperador, y `tx_carrera_eventos` cuenta la historia completa"). Ver `SPEC.md` y `ARQUITECTURA_Y_MODELO_DE_DATOS.md` para el detalle técnico de lo construido.
+La carrera apareció en la cola del Centro de Transmisión con `actor_tipo=IA` en `tx_carrera_eventos`. El radiooperador la asignó desde el panel real (navegador), completando **RECIBIDA→ASIGNADA** con una carrera creada por la IA de verdad — y por separado se probó el ciclo completo **RECIBIDA→FINALIZADA** (`ASIGNADA→EN_CAMINO→EN_SERVICIO→FINALIZADA`, botones nuevos en el panel) con los 5 eventos y actor correcto. **La definición de hecho de Fase 1 (§13) está cumplida.**
+
+Lo único que falta para producción real: **una instancia de Evolution API** conectada a un número de WhatsApp de verdad (hoy `evolution_url` apunta a una dirección falsa para pruebas) — sin eso, la IA conversa y crea carreras perfectamente, pero no puede *responderle al cliente por WhatsApp de verdad* (los envíos fallan con "connection refused", manejado con gracia, sin romper nada).
 
 ## FASE 0 — Cimientos (CERRADA)
 
@@ -43,15 +47,18 @@ Siete commits en el repo local: `d435ecb`, `78b2c56`, `090f2cf`, `f34abab`, `e7c
 
 ## Próximos pasos (en orden)
 
-1. **Bloqueante real para cerrar Fase 1**: conseguir una clave de API de un proveedor de IA (Anthropic, Gemini, o compatible OpenAI) y configurarla en `/modules/admin/whatsapp.php`. Sin esto no se puede probar que el agente conversa de verdad.
-2. Levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp — necesaria para probar con un cliente real, no solo con payloads simulados por curl.
-3. Con las dos anteriores: probar el flujo completo real — un mensaje de WhatsApp de verdad → el agente identifica al cliente, pregunta lo que falta, llama a `registrar_solicitud` → la carrera aparece en la cola del Centro de Transmisión → el radiooperador asigna → el cliente recibe la notificación de verdad (ya está conectado, solo falta que Evolution exista para probarlo).
-4. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
-5. Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
+1. **Único bloqueante real que queda**: levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp de verdad, apuntando su webhook a `https://TU-DOMINIO/modules/webhook/mensajes.php?token=<el-de-wa_config>`. Con eso, el flujo completo (probado hoy con payloads simulados) funciona con clientes reales sin tocar código.
+2. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
+3. Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
+4. Voz e imagen (STT/TTS/Visión) — credenciales de proveedor aparte, no urgente para el MVP.
 
 ### Ya cerrado en esta sesión (no repetir)
 
-Notificar al cliente tras asignar (§7) y mostrar en el panel las conversaciones en `HUMANO_ATENDIENDO` — ambos construidos y probados en navegador real. Ver `SPEC.md`.
+- Notificar al cliente tras asignar (§7) y mostrar en el panel las conversaciones en `HUMANO_ATENDIENDO` (§8).
+- El ciclo completo de la carrera en el panel: `ASIGNADA→EN_CAMINO→EN_SERVICIO→FINALIZADA` (antes el panel no tenía forma de ir más allá de `ASIGNADA`).
+- **La conversación real con IA**: probada con una clave de Gemini real proporcionada por el usuario — identificación de cliente, consulta de tipos de servicio, y `registrar_solicitud` funcionando de punta a punta. Ver el relato completo arriba.
+
+Todo esto probado en navegador real y/o con payloads de webhook reales, no solo escrito. Ver `SPEC.md` para el detalle técnico.
 
 ## Qué NO bloquea nada ahora mismo
 

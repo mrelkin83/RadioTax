@@ -89,24 +89,46 @@
       acciones.appendChild(btnAsignar);
     }
 
-    const inputMotivo = el('input', { className: 'bg-slate-700 text-white text-sm rounded px-2 py-1 w-32', attrs: { placeholder: 'Motivo' } });
-    const btnCancelar = el('button', { className: 'text-sm bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded', text: 'Cancelar' });
-    btnCancelar.addEventListener('click', async () => {
-      if (!inputMotivo.value.trim()) {
-        inputMotivo.focus();
-        return;
-      }
-      btnCancelar.disabled = true;
-      try {
-        await api('/modules/panel/api/cancelar.php', { method: 'POST', body: JSON.stringify({ carrera_id: carrera.id, motivo: inputMotivo.value.trim() }) });
-        await refrescar({ forzar: true });
-      } catch (e) {
-        alert(e.message);
-        btnCancelar.disabled = false;
-      }
-    });
-    acciones.appendChild(inputMotivo);
-    acciones.appendChild(btnCancelar);
+    const transicionesCarrera = { ASIGNADA: 'EN_CAMINO', EN_CAMINO: 'EN_SERVICIO', EN_SERVICIO: 'FINALIZADA' };
+    const etiquetasTransicion = { EN_CAMINO: 'En camino', EN_SERVICIO: 'En servicio', FINALIZADA: 'Finalizar' };
+    const destino = transicionesCarrera[carrera.estado];
+    if (destino) {
+      const btnAvanzar = el('button', { className: 'text-sm bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded', text: etiquetasTransicion[destino] });
+      btnAvanzar.addEventListener('click', async () => {
+        btnAvanzar.disabled = true;
+        try {
+          await api('/modules/panel/api/avanzar_estado.php', { method: 'POST', body: JSON.stringify({ carrera_id: carrera.id, estado: destino }) });
+          await refrescar({ forzar: true });
+        } catch (e) {
+          alert(e.message);
+          btnAvanzar.disabled = false;
+        }
+      });
+      acciones.appendChild(btnAvanzar);
+    }
+
+    // Una carrera con el cliente ya a bordo (EN_SERVICIO) no se cancela: de
+    // ahí solo se sale finalizándola (regla del ciclo, §6 del system prompt maestro).
+    if (carrera.estado !== 'EN_SERVICIO') {
+      const inputMotivo = el('input', { className: 'bg-slate-700 text-white text-sm rounded px-2 py-1 w-32', attrs: { placeholder: 'Motivo' } });
+      const btnCancelar = el('button', { className: 'text-sm bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded', text: 'Cancelar' });
+      btnCancelar.addEventListener('click', async () => {
+        if (!inputMotivo.value.trim()) {
+          inputMotivo.focus();
+          return;
+        }
+        btnCancelar.disabled = true;
+        try {
+          await api('/modules/panel/api/cancelar.php', { method: 'POST', body: JSON.stringify({ carrera_id: carrera.id, motivo: inputMotivo.value.trim() }) });
+          await refrescar({ forzar: true });
+        } catch (e) {
+          alert(e.message);
+          btnCancelar.disabled = false;
+        }
+      });
+      acciones.appendChild(inputMotivo);
+      acciones.appendChild(btnCancelar);
+    }
 
     tarjeta.appendChild(acciones);
     return tarjeta;

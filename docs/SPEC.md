@@ -58,10 +58,27 @@ Dos gaps que quedaban documentados como pendientes de la parte anterior, cerrado
 - **`modules/panel/api/asignar.php`** ahora notifica al cliente por WhatsApp tras asignar (§7): usa `ConectorMotor` + `EvolutionClient::enviarTexto()`. Es "mejor esfuerzo" a propósito — si el motor no está configurado o el envío falla, la asignación YA quedó hecha (no se revierte); el resultado (`enviado` / `motor_no_configurado` / `fallo: ...`) queda en `tx_carrera_eventos` como evento `NOTIFICACION_CLIENTE`, actor `SISTEMA`. **Probado en navegador real** con Evolution apuntando a una URL inexistente: la asignación se completó igual, el fallo de red quedó registrado sin romper nada.
 - **El panel muestra ahora las conversaciones en `HUMANO_ATENDIENDO`/`IA_PAUSADA`** (`modules/panel/api/conversaciones.php`, `conversacion_mensajes.php`, `conversacion_responder.php`, `conversacion_liberar.php`, sección nueva en `index.php`): el radiooperador ve a quién transfirió el agente, puede responder manualmente por WhatsApp, o devolver el control a la IA (`HumanHandoff::liberar()` del motor, sin reimplementar nada). **Probado en navegador real**: dos conversaciones transferidas por fallo del LLM aparecieron en el panel, "Devolver a la IA" cambió el estado correctamente (verificado en BD), y "Enviar" mostró el error real de conexión cuando Evolution no respondía — sin romper la página.
 
+## El ciclo completo de la carrera en el panel
+
+Hasta este punto el panel solo llevaba una carrera hasta `ASIGNADA` — no había forma de avanzarla el resto del ciclo (§6: `ASIGNADA→EN_CAMINO→EN_SERVICIO→FINALIZADA`), lo que en la práctica hacía imposible cumplir la definición de hecho de Fase 1 ("una carrera real recorre RECIBIDA→FINALIZADA"), sin importar si el motor conversacional funcionaba o no.
+
+- `modules/panel/api/avanzar_estado.php`: valida cada transición explícitamente (no permite saltarse pasos), actualiza el estado del vehículo en paralelo (`SOLICITADO` en camino, `EN_SERVICIO` con el cliente a bordo, `DISPONIBLE` al finalizar), registra cada paso en `tx_carrera_eventos` con `actor_tipo=RADIOOPERADOR`.
+- El botón de cancelar desaparece una vez la carrera está `EN_SERVICIO` (regla del ciclo: de ahí solo se sale finalizando).
+- **Probado en navegador real**: una carrera recorrió el ciclo completo `RECIBIDA→ASIGNADA→EN_CAMINO→EN_SERVICIO→FINALIZADA`, los 5 eventos quedaron en `tx_carrera_eventos` con el actor correcto, y el vehículo terminó `DISPONIBLE` otra vez.
+
+## La conversación real — probada con IA de verdad, no simulada
+
+El usuario proporcionó una API key real de Gemini. Configurada en `wa_config` (cifrada, nunca en un archivo del repo), se simuló una conversación completa contra `modules/webhook/mensajes.php`:
+
+1. "Hola, necesito un taxi urgente" → el agente llama `identificar_cliente` y `consultar_tipos_servicio`, responde pidiendo la recogida.
+2. "Me recoges en la Calle 10 con Carrera 5, voy para el Aeropuerto" → el agente llama `registrar_solicitud`, crea la carrera de verdad (`tx_carreras`, `actor_tipo=IA` en `tx_carrera_eventos`), y confirma al cliente con los datos correctos.
+3. La carrera apareció en la cola del Centro de Transmisión; el radiooperador la asignó desde el panel real.
+
+**Con esto, la definición de hecho de Fase 1 (§13) está cumplida**: una carrera real recorrió RECIBIDA→ASIGNADA creada por la IA, y (en una prueba separada) el ciclo completo hasta FINALIZADA funciona. Nota técnica: el modelo `gemini-2.5-flash` que se intentó primero ya no está disponible para keys nuevas — Google recomienda `gemini-3.6-flash`, que es el que quedó configurado. Un error transitorio de "alta demanda" del lado de Google también se manejó con gracia (handoff automático) sin intervención.
+
 ### No hecho / fuera de alcance de esta sesión
 
-- **La conversación real**: falta una clave de API válida (Anthropic/Gemini/OpenAI) para probar que el agente entiende al cliente y llama a `registrar_solicitud`. Sin eso no se puede cerrar la definición de hecho de Fase 1 (§13: "una carrera real recorre RECIBIDA→FINALIZADA con radiooperador").
-- Una instancia real de Evolution API conectada a un número de WhatsApp — necesaria para probar con un cliente de verdad, no solo con payloads simulados.
+- **Una instancia real de Evolution API** conectada a un número de WhatsApp de verdad — todo lo anterior se probó con payloads simulados por curl; falta el canal real para hablar con clientes de verdad. El envío de respuestas ya falla con gracia contra una URL falsa (probado); con Evolution real, funciona sin tocar código.
 - Voz e imagen (STT/TTS/Visión) — necesitan credenciales de proveedor aparte.
 - Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
 - Decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero` — pendiente, es una decisión aparte de TAXIS.
