@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
+use ElkinLinan\WhatsappAiEngine\Channel\EvolutionClient;
 use ElkinLinan\WhatsappAiEngine\Core\WaConfig;
 use ElkinLinan\WhatsappAiEngine\Engine;
 use TaxiApp\Core\Auth;
@@ -12,9 +13,21 @@ use TaxiApp\Core\ConectorMotor;
 $empresaId = $usuarioActual['empresa_id'];
 $error = null;
 $tokenNuevo = null;
+$qrBase64 = null;
+$qrCodigo = null;
+$conectarError = null;
+$desconectarError = null;
+$desconectarOk = false;
 
 ConectorMotor::conectar($empresaId);
 $db = Engine::db();
+
+function urlWebhookActual(string $token): string
+{
+    $esquema = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    return $esquema . '://' . $host . '/modules/webhook/mensajes.php?token=' . $token;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
     $error = 'Token de seguridad inválido o expirado. Recarga la página e inténtalo de nuevo.';
@@ -40,6 +53,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
     if ($accion === 'regenerar_token') {
         $tokenNuevo = WaConfig::regenerarWebhookToken($db);
     }
+
+    if ($accion === 'conectar') {
+        $cliente = EvolutionClient::desdeConfig($db);
+        if ($cliente === null || $cliente->requisitosFaltantes() !== []) {
+            $conectarError = 'Falta configurar la URL, la instancia o la API key de Evolution antes de conectar.';
+        } else {
+            $tokenNuevo = WaConfig::regenerarWebhookToken($db);
+            $cliente->registrarWebhook(urlWebhookActual($tokenNuevo));
+            $resultado = $cliente->conectar();
+            if ($resultado['ok']) {
+                $qrBase64 = $resultado['qr'];
+                $qrCodigo = $resultado['codigo'];
+            } else {
+                $conectarError = $resultado['error'];
+            }
+        }
+    }
+
+    if ($accion === 'desconectar') {
+        $cliente = EvolutionClient::desdeConfig($db);
+        if ($cliente === null) {
+            $desconectarError = 'No hay una instancia configurada.';
+        } else {
+            $resultado = $cliente->desconectar();
+            if ($resultado['ok']) {
+                $desconectarOk = true;
+            } else {
+                $desconectarError = $resultado['error'];
+            }
+        }
+    }
 }
 
 $cfg = WaConfig::paraFrontend($db);
@@ -47,6 +91,18 @@ $csrf = Auth::tokenCsrf();
 $activo = 'whatsapp';
 $tieneConfig = !empty($cfg['evolution_url']) || !empty($cfg['llm_proveedor']);
 $soloLectura = $tieneConfig && !isset($_GET['editar']);
+
+$estadoConexion = null;
+if ($tieneConfig && $qrBase64 === null) {
+    $clienteEstado = EvolutionClient::desdeConfig($db);
+    if ($clienteEstado !== null && $clienteEstado->requisitosFaltantes() === []) {
+        try {
+            $estadoConexion = $clienteEstado->estado();
+        } catch (\Throwable $e) {
+            $estadoConexion = null;
+        }
+    }
+}
 ?>
 <!doctype html>
 <html lang="es">
@@ -140,6 +196,57 @@ $soloLectura = $tieneConfig && !isset($_GET['editar']);
         <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
       <?php endif; ?>
     </form>
+
+    <?php if ($tieneConfig): ?>
+      <section class="bg-card border border-border rounded-xl p-6 space-y-4">
+        <h2 class="font-semibold text-lg">Conectar WhatsApp</h2>
+
+        <?php if ($conectarError !== null): ?>
+          <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-4 py-3"><?= htmlspecialchars($conectarError, ENT_QUOTES, 'UTF-8') ?></p>
+        <?php endif; ?>
+        <?php if ($desconectarOk): ?>
+          <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-sm rounded-lg px-4 py-3">WhatsApp desconectado.</p>
+        <?php endif; ?>
+        <?php if ($desconectarError !== null): ?>
+          <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-4 py-3"><?= htmlspecialchars($desconectarError, ENT_QUOTES, 'UTF-8') ?></p>
+        <?php endif; ?>
+
+        <?php if ($qrBase64 !== null): ?>
+          <p class="text-sm text-slate-400">Escaneá este código con WhatsApp (Dispositivos vinculados → Vincular un dispositivo). Se actualiza cada vez que tocás "Conectar WhatsApp".</p>
+          <img src="<?= htmlspecialchars($qrBase64, ENT_QUOTES, 'UTF-8') ?>" alt="Código QR para vincular WhatsApp" class="rounded-lg border border-border w-64 h-64 bg-white p-2">
+        <?php elseif ($estadoConexion !== null): ?>
+          <p class="text-sm text-slate-400">
+            Estado:
+            <?php if ($estadoConexion['estado'] === 'conectado'): ?>
+              <span class="text-emerald-400 font-medium">conectado<?= !empty($estadoConexion['numero']) ? ' (' . htmlspecialchars((string) $estadoConexion['numero'], ENT_QUOTES, 'UTF-8') . ')' : '' ?></span>
+            <?php elseif ($estadoConexion['estado'] === 'qr'): ?>
+              <span class="text-amber-400 font-medium">esperando que se escanee el QR</span>
+            <?php elseif ($estadoConexion['estado'] === 'error'): ?>
+              <span class="text-red-400 font-medium">no se pudo consultar (<?= htmlspecialchars((string) $estadoConexion['mensaje'], ENT_QUOTES, 'UTF-8') ?>)</span>
+            <?php else: ?>
+              <span class="text-slate-300 font-medium">desconectado</span>
+            <?php endif; ?>
+          </p>
+        <?php endif; ?>
+
+        <div class="flex gap-3">
+          <form method="post">
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="accion" value="conectar">
+            <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">
+              <?= $qrBase64 !== null || ($estadoConexion['estado'] ?? '') === 'qr' ? 'Generar QR de nuevo' : 'Conectar WhatsApp' ?>
+            </button>
+          </form>
+          <?php if (($estadoConexion['estado'] ?? '') === 'conectado'): ?>
+            <form method="post">
+              <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+              <input type="hidden" name="accion" value="desconectar">
+              <button type="submit" class="bg-destructive/15 hover:bg-destructive/25 text-red-300 text-base font-medium rounded-lg px-5 py-2.5">Desconectar</button>
+            </form>
+          <?php endif; ?>
+        </div>
+      </section>
+    <?php endif; ?>
   </main>
 </body>
 </html>
