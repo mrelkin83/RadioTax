@@ -29,13 +29,14 @@ $csrf = Auth::tokenCsrf();
       </svg>
       <h1 class="text-base font-semibold truncate">Centro de transmisión <span class="text-slate-500 font-normal">· <?= htmlspecialchars($usuario['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></span></h1>
     </div>
-    <div class="flex items-center gap-3 sm:gap-5 text-sm text-slate-400 shrink-0">
-      <span class="hidden md:inline"><?= htmlspecialchars($usuario['nombre'], ENT_QUOTES, 'UTF-8') ?> <span class="text-slate-600">·</span> <?= htmlspecialchars($usuario['rol'], ENT_QUOTES, 'UTF-8') ?></span>
+    <div class="flex items-center gap-2 sm:gap-3 text-sm shrink-0">
+      <span class="hidden md:inline text-slate-400 mr-1"><?= htmlspecialchars($usuario['nombre'], ENT_QUOTES, 'UTF-8') ?> <span class="text-slate-600">·</span> <?= htmlspecialchars($usuario['rol'], ENT_QUOTES, 'UTF-8') ?></span>
       <?php if ($usuario['rol'] === 'ADMIN'): ?>
-        <a href="/modules/admin/vehiculos.php" class="hover:text-foreground transition-colors">Administración</a>
+        <a href="/modules/admin/vehiculos.php" class="bg-muted hover:bg-secondary text-slate-200 px-3.5 py-2 rounded-lg transition-colors">Administración</a>
       <?php endif; ?>
-      <a href="/modules/panel/cuenta.php" class="hover:text-foreground transition-colors">Mi cuenta</a>
-      <a href="/modules/panel/logout.php" class="text-red-400 hover:text-red-300 transition-colors">Salir</a>
+      <a href="/modules/admin/reportes.php" class="bg-muted hover:bg-secondary text-slate-200 px-3.5 py-2 rounded-lg transition-colors">Reportes</a>
+      <a href="/modules/panel/cuenta.php" class="bg-muted hover:bg-secondary text-slate-200 px-3.5 py-2 rounded-lg transition-colors">Mi cuenta</a>
+      <a href="/modules/panel/logout.php" class="bg-destructive/15 hover:bg-destructive/25 text-red-300 px-3.5 py-2 rounded-lg transition-colors">Salir</a>
     </div>
   </header>
 

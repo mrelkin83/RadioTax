@@ -2,9 +2,16 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/../../vendor/autoload.php';
 
+use TaxiApp\Core\Auth;
 use TaxiApp\Core\Database;
+
+// A diferencia del resto de Administración, Reportes es la única sección
+// que también puede ver el RADIOOPERADOR — por eso usa su propio bootstrap
+// en vez de _bootstrap.php (que exige rol=ADMIN para toda la sección).
+Auth::iniciar();
+$usuarioActual = Auth::requerirSesionDeEmpresa();
 
 $pdo = Database::conexion();
 $empresaId = $usuarioActual['empresa_id'];
@@ -132,7 +139,7 @@ function formatoDuracion(?int $segundos): string
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reportes · Administración · <?= htmlspecialchars($usuarioActual['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></title>
+<title>Reportes · <?= htmlspecialchars($usuarioActual['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></title>
 <?php require __DIR__ . '/../_tema.php'; ?>
 </head>
 <body class="bg-background text-foreground min-h-screen">

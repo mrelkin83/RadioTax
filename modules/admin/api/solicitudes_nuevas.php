@@ -2,10 +2,18 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/_bootstrap.php';
+require __DIR__ . '/../../../vendor/autoload.php';
 
+use TaxiApp\Core\Auth;
 use TaxiApp\Core\Database;
 use TaxiApp\Domain\EstimadorLiberacion;
+
+// A diferencia del resto de la API de administración, este endpoint
+// también lo consume Reportes cuando lo abre un RADIOOPERADOR — por eso no
+// usa el _bootstrap.php compartido (ese exige rol=ADMIN).
+Auth::iniciar();
+$usuarioActual = Auth::requerirSesionApiDeEmpresa();
+header('Content-Type: application/json; charset=utf-8');
 
 $pdo = Database::conexion();
 $empresaId = $usuarioActual['empresa_id'];
