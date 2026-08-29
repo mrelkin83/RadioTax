@@ -45,6 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
 $cfg = WaConfig::paraFrontend($db);
 $csrf = Auth::tokenCsrf();
 $activo = 'whatsapp';
+$tieneConfig = !empty($cfg['evolution_url']) || !empty($cfg['llm_proveedor']);
+$soloLectura = $tieneConfig && !isset($_GET['editar']);
 ?>
 <!doctype html>
 <html lang="es">
@@ -93,40 +95,50 @@ $activo = 'whatsapp';
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
       <input type="hidden" name="accion" value="guardar">
 
-      <label class="flex items-center gap-3 text-base">
-        <input type="checkbox" name="activo" <?= !empty($cfg['activo']) ? 'checked' : '' ?> class="accent-accent w-5 h-5">
-        Motor encendido (si está apagado, los mensajes se reciben y se ignoran)
-      </label>
+      <?php if ($soloLectura): ?>
+        <p class="text-sm text-slate-400 -mt-2 -mb-2">Esta configuración ya está guardada. Tocá "Editar" para cambiarla.</p>
+      <?php endif; ?>
 
-      <div>
-        <h3 class="text-base font-semibold text-slate-300 mb-3">Evolution API</h3>
-        <div class="grid grid-cols-2 gap-3">
-          <input name="evolution_url" placeholder="URL (ej. http://localhost:8080)" value="<?= htmlspecialchars((string) ($cfg['evolution_url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
-          <input name="evolution_instancia" placeholder="Nombre de la instancia" value="<?= htmlspecialchars((string) ($cfg['evolution_instancia'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
-          <input name="numero_whatsapp" placeholder="Número de WhatsApp" value="<?= htmlspecialchars((string) ($cfg['numero_whatsapp'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
-          <input name="evolution_apikey" type="password" placeholder="<?= !empty($cfg['evolution_apikey_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+      <fieldset <?= $soloLectura ? 'disabled' : '' ?> class="space-y-6 <?= $soloLectura ? 'opacity-60' : '' ?>">
+        <label class="flex items-center gap-3 text-base">
+          <input type="checkbox" name="activo" <?= !empty($cfg['activo']) ? 'checked' : '' ?> class="accent-accent w-5 h-5">
+          Motor encendido (si está apagado, los mensajes se reciben y se ignoran)
+        </label>
+
+        <div>
+          <h3 class="text-base font-semibold text-slate-300 mb-3">Evolution API</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <input name="evolution_url" placeholder="URL (ej. http://localhost:8080)" value="<?= htmlspecialchars((string) ($cfg['evolution_url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+            <input name="evolution_instancia" placeholder="Nombre de la instancia" value="<?= htmlspecialchars((string) ($cfg['evolution_instancia'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+            <input name="numero_whatsapp" placeholder="Número de WhatsApp" value="<?= htmlspecialchars((string) ($cfg['numero_whatsapp'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
+            <input name="evolution_apikey" type="password" placeholder="<?= !empty($cfg['evolution_apikey_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h3 class="text-base font-semibold text-slate-300 mb-3">Proveedor de IA</h3>
-        <div class="grid grid-cols-2 gap-3">
-          <select name="llm_proveedor" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
-            <?php foreach (['' => 'Selecciona…', 'anthropic' => 'Anthropic', 'gemini' => 'Gemini', 'openai' => 'OpenAI / compatible'] as $valor => $etiqueta): ?>
-              <option value="<?= htmlspecialchars($valor, ENT_QUOTES, 'UTF-8') ?>" <?= ($cfg['llm_proveedor'] ?? '') === $valor ? 'selected' : '' ?>><?= htmlspecialchars($etiqueta, ENT_QUOTES, 'UTF-8') ?></option>
-            <?php endforeach; ?>
-          </select>
-          <input name="llm_modelo" placeholder="Modelo (ej. claude-3-5-haiku-20241022)" value="<?= htmlspecialchars((string) ($cfg['llm_modelo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
-          <input name="llm_api_key" type="password" placeholder="<?= !empty($cfg['llm_api_key_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+        <div>
+          <h3 class="text-base font-semibold text-slate-300 mb-3">Proveedor de IA</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <select name="llm_proveedor" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
+              <?php foreach (['' => 'Selecciona…', 'anthropic' => 'Anthropic', 'gemini' => 'Gemini', 'openai' => 'OpenAI / compatible'] as $valor => $etiqueta): ?>
+                <option value="<?= htmlspecialchars($valor, ENT_QUOTES, 'UTF-8') ?>" <?= ($cfg['llm_proveedor'] ?? '') === $valor ? 'selected' : '' ?>><?= htmlspecialchars($etiqueta, ENT_QUOTES, 'UTF-8') ?></option>
+              <?php endforeach; ?>
+            </select>
+            <input name="llm_modelo" placeholder="Modelo (ej. claude-3-5-haiku-20241022)" value="<?= htmlspecialchars((string) ($cfg['llm_modelo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
+            <input name="llm_api_key" type="password" placeholder="<?= !empty($cfg['llm_api_key_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h3 class="text-base font-semibold text-slate-300 mb-3">Aviso al radiooperador</h3>
-        <input name="handoff_numero" placeholder="Número que recibe el aviso cuando se transfiere a un humano" value="<?= htmlspecialchars((string) ($cfg['handoff_numero'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="w-full rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
-      </div>
+        <div>
+          <h3 class="text-base font-semibold text-slate-300 mb-3">Aviso al radiooperador</h3>
+          <input name="handoff_numero" placeholder="Número que recibe el aviso cuando se transfiere a un humano" value="<?= htmlspecialchars((string) ($cfg['handoff_numero'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="w-full rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
+        </div>
+      </fieldset>
 
-      <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
+      <?php if ($soloLectura): ?>
+        <a href="?editar=1" class="inline-block bg-muted hover:bg-secondary text-slate-100 text-base font-medium rounded-lg px-5 py-2.5">Editar</a>
+      <?php else: ?>
+        <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
+      <?php endif; ?>
     </form>
   </main>
 </body>
