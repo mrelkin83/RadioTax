@@ -368,7 +368,7 @@
     const contenedorCola = document.getElementById('cola');
     contenedorCola.replaceChildren();
     if (datosCola.cola.length === 0) {
-      contenedorCola.appendChild(el('p', { className: 'text-slate-500 text-sm', text: 'No hay solicitudes en cola.' }));
+      contenedorCola.appendChild(el('p', { className: 'text-neutral-700 text-sm', text: 'No hay solicitudes en cola.' }));
     } else {
       for (const carrera of datosCola.cola) {
         contenedorCola.appendChild(tarjetaCarrera(carrera));
@@ -390,7 +390,7 @@
     const contenedorConversaciones = document.getElementById('conversaciones');
     contenedorConversaciones.replaceChildren();
     if (datosConversaciones.conversaciones.length === 0) {
-      contenedorConversaciones.appendChild(el('p', { className: 'text-slate-500 text-sm', text: 'Ninguna por ahora.' }));
+      contenedorConversaciones.appendChild(el('p', { className: 'text-neutral-700 text-sm', text: 'Ninguna por ahora.' }));
     } else {
       for (const conv of datosConversaciones.conversaciones) {
         contenedorConversaciones.appendChild(tarjetaConversacion(conv));

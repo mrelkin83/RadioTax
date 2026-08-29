@@ -150,7 +150,7 @@ function formatoDuracion(?int $segundos): string
       </div>
       <div class="bg-card border border-border rounded-xl p-4">
         <p class="text-xs text-slate-400">Finalizadas</p>
-        <p class="text-2xl font-semibold text-accent font-mono"><?= $finalizadas ?></p>
+        <p class="text-2xl font-semibold text-yellow-400 font-mono"><?= $finalizadas ?></p>
       </div>
       <div class="bg-card border border-border rounded-xl p-4">
         <p class="text-xs text-slate-400">Canceladas</p>

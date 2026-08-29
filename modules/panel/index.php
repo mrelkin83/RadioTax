@@ -21,9 +21,9 @@ $csrf = Auth::tokenCsrf();
 <?php require __DIR__ . '/../_tema.php'; ?>
 </head>
 <body class="bg-background text-foreground min-h-screen">
-  <header class="border-b border-border px-6 py-4 flex items-center justify-between bg-card/40 backdrop-blur">
+  <header class="border-b border-border px-6 py-4 flex items-center justify-between bg-card/90 backdrop-blur">
     <div class="flex items-center gap-2.5">
-      <svg class="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg class="w-5 h-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M8 17h8m-9-4h10l1.5-4.5a1 1 0 0 0-.95-1.32H6.45a1 1 0 0 0-.95 1.32L7 13Z"/>
         <circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/>
       </svg>
@@ -42,7 +42,7 @@ $csrf = Auth::tokenCsrf();
     <section class="lg:col-span-2 space-y-8">
       <div>
         <div class="flex items-center justify-between mb-3">
-          <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide">Cola de solicitudes</h2>
+          <h2 class="font-semibold text-sm text-neutral-800 uppercase tracking-wide">Cola de solicitudes</h2>
           <button id="btn-nueva-solicitud" type="button" class="inline-flex items-center gap-1.5 text-sm font-medium bg-accent hover:bg-accent-hover text-on-accent px-3.5 py-2 rounded-lg">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             Solicitud manual
@@ -52,17 +52,17 @@ $csrf = Auth::tokenCsrf();
       </div>
 
       <div>
-        <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide mb-3">Finalizadas hoy</h2>
+        <h2 class="font-semibold text-sm text-neutral-800 uppercase tracking-wide mb-3">Finalizadas hoy</h2>
         <div id="finalizadas" class="space-y-2"></div>
       </div>
     </section>
 
     <aside class="space-y-3">
-      <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide">Tablero de flota</h2>
+      <h2 class="font-semibold text-sm text-neutral-800 uppercase tracking-wide">Tablero de flota</h2>
       <div id="flota" class="space-y-2"></div>
 
-      <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide pt-5">Necesitan atención</h2>
-      <p class="text-xs text-slate-500 -mt-1">Transferidas por el agente de IA o pausadas manualmente.</p>
+      <h2 class="font-semibold text-sm text-neutral-800 uppercase tracking-wide pt-5">Necesitan atención</h2>
+      <p class="text-xs text-neutral-700 -mt-1">Transferidas por el agente de IA o pausadas manualmente.</p>
       <div id="conversaciones" class="space-y-2"></div>
     </aside>
   </main>

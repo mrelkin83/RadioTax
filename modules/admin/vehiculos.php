@@ -95,9 +95,9 @@ $activo = 'vehiculos';
     </section>
 
     <section class="space-y-2">
-      <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide">Flota (<?= count($vehiculos) ?>)</h2>
+      <h2 class="font-semibold text-sm text-neutral-800 uppercase tracking-wide">Flota (<?= count($vehiculos) ?>)</h2>
       <?php if ($vehiculos === []): ?>
-        <p class="text-slate-500 text-sm">Todavía no hay vehículos registrados.</p>
+        <p class="text-neutral-700 text-sm">Todavía no hay vehículos registrados.</p>
       <?php endif; ?>
       <?php foreach ($vehiculos as $v): ?>
         <form method="post" class="bg-card border border-border rounded-xl p-3 flex flex-wrap gap-2 items-end">

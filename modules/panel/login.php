@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <path d="M8 17h8m-9-4h10l1.5-4.5a1 1 0 0 0-.95-1.32H6.45a1 1 0 0 0-.95 1.32L7 13Z"/>
         <circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/>
       </svg>
-      <span class="text-slate-400 text-sm font-medium tracking-wide uppercase">Despacho</span>
+      <span class="text-neutral-800 text-sm font-medium tracking-wide uppercase">Despacho</span>
     </div>
     <form method="post" class="bg-card border border-border rounded-xl shadow-2xl p-8" novalidate>
       <h1 class="text-foreground text-xl font-semibold mb-6">Centro de transmisión</h1>

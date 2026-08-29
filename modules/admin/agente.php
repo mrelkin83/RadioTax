@@ -62,7 +62,7 @@ $activo = 'agente';
       <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-sm rounded-lg px-3 py-2">Agente actualizado.</p>
     <?php endif; ?>
 
-    <p class="text-xs text-slate-500 -mt-2">
+    <p class="text-xs text-neutral-700 -mt-2">
       Esto define cómo se presenta y se comporta el asistente por WhatsApp — no reemplaza las reglas de seguridad
       del motor (esas no se pueden editar desde aquí), solo el rol, el tono y los mensajes que le corresponden a esta empresa.
     </p>

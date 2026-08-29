@@ -92,9 +92,9 @@ $csrf = Auth::tokenCsrf();
 <?php require __DIR__ . '/../_tema.php'; ?>
 </head>
 <body class="bg-background text-foreground min-h-screen">
-  <header class="border-b border-border px-6 py-4 flex items-center justify-between bg-card/40 backdrop-blur">
+  <header class="border-b border-border px-6 py-4 flex items-center justify-between bg-card/90 backdrop-blur">
     <div class="flex items-center gap-2.5">
-      <svg class="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg class="w-5 h-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 3v18M3 12h18"/>
       </svg>
       <h1 class="text-base font-semibold">Plataforma <span class="text-slate-500 font-normal">· Empresas (marca blanca)</span></h1>
@@ -141,7 +141,7 @@ $csrf = Auth::tokenCsrf();
     </section>
 
     <section class="space-y-4">
-      <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide">Empresas (<?= count($empresas) ?>)</h2>
+      <h2 class="font-semibold text-sm text-neutral-800 uppercase tracking-wide">Empresas (<?= count($empresas) ?>)</h2>
       <?php foreach ($empresas as $e): ?>
         <div class="bg-card border border-border rounded-xl p-4 space-y-3">
           <div class="flex items-center justify-between">

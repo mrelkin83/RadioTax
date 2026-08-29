@@ -115,9 +115,9 @@ $activo = 'conductores';
     </section>
 
     <section class="space-y-2">
-      <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide">Conductores (<?= count($conductores) ?>)</h2>
+      <h2 class="font-semibold text-sm text-neutral-800 uppercase tracking-wide">Conductores (<?= count($conductores) ?>)</h2>
       <?php if ($conductores === []): ?>
-        <p class="text-slate-500 text-sm">Todavía no hay conductores registrados.</p>
+        <p class="text-neutral-700 text-sm">Todavía no hay conductores registrados.</p>
       <?php endif; ?>
       <?php foreach ($conductores as $c): ?>
         <form method="post" class="bg-card border border-border rounded-xl p-3 flex flex-wrap gap-2 items-end">

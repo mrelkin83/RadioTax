@@ -2,9 +2,9 @@
 /**
  * Sistema de diseño compartido — Centro de Transmisión / Administración / Plataforma.
  * Un solo lugar para la paleta, tipografía y estados base; cada página lo incluye
- * en <head> en vez de cargar Tailwind suelto. "Taxi negro y amarillo": los colores
- * clásicos del oficio, no un dashboard genérico — negro real (no azul oscuro) con
- * el amarillo como acento, alto contraste, escaneo rápido, sin ruido visual.
+ * en <head> en vez de cargar Tailwind suelto. "Taxi amarillo y negro" (invertido):
+ * el amarillo es ahora el color dominante del lienzo, y el negro pasa a ser el
+ * acento — como el cuerpo amarillo de un taxi con el tablero e interior negros.
  */
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +20,7 @@
           mono: ['"Fira Code"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
         },
         colors: {
-          background: '#0B0B0C',
+          background: '#FACC15',
           foreground: '#FAFAFA',
           card: '#161616',
           'card-foreground': '#FAFAFA',
@@ -28,9 +28,9 @@
           'on-primary': '#FFFFFF',
           secondary: '#2A2A2A',
           'on-secondary': '#FFFFFF',
-          accent: '#FACC15',
-          'accent-hover': '#EAB308',
-          'on-accent': '#141200',
+          accent: '#0B0B0C',
+          'accent-hover': '#242424',
+          'on-accent': '#FACC15',
           muted: '#1C1C1C',
           'muted-foreground': '#A3A3A3',
           border: '#3A3A3A',
@@ -44,9 +44,9 @@
   };
 </script>
 <style>
-  body { font-family: 'Fira Sans', ui-sans-serif, system-ui, sans-serif; background: #0B0B0C; color: #FAFAFA; position: relative; isolation: isolate; }
+  body { font-family: 'Fira Sans', ui-sans-serif, system-ui, sans-serif; background: #FACC15; color: #FAFAFA; position: relative; isolation: isolate; }
   .font-mono, .num { font-family: 'Fira Code', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-  ::selection { background: #FACC15; color: #141200; }
+  ::selection { background: #0B0B0C; color: #FACC15; }
   /* Foco visible solo por teclado (§ux focus-visible), nunca al hacer click con el mouse. */
   :focus { outline: none; }
   :focus-visible { outline: 2px solid #FACC15; outline-offset: 2px; border-radius: 4px; box-shadow: 0 0 0 4px rgba(250, 204, 21, .22); }
@@ -59,7 +59,7 @@
   /* Barra de estado (punto), no emoji — un indicador real de UI, no un icono decorativo. */
   .punto-estado { display: inline-block; width: .55rem; height: .55rem; border-radius: 9999px; flex: none; }
 
-  /* Profundidad ambiental: dos manchas de luz amarilla, fijas y muy suaves, detrás del contenido. */
+  /* Profundidad ambiental: dos sombras suaves y fijas sobre el amarillo, para que no sea un plano liso. */
   body::before, body::after {
     content: '';
     position: fixed;
@@ -68,8 +68,8 @@
     pointer-events: none;
     filter: blur(90px);
   }
-  body::before { width: 44rem; height: 44rem; top: -14rem; right: -12rem; background: radial-gradient(closest-side, rgba(250, 204, 21, .14), transparent); }
-  body::after { width: 38rem; height: 38rem; bottom: -16rem; left: -10rem; background: radial-gradient(closest-side, rgba(234, 179, 8, .08), transparent); }
+  body::before { width: 44rem; height: 44rem; top: -14rem; right: -12rem; background: radial-gradient(closest-side, rgba(11, 11, 12, .16), transparent); }
+  body::after { width: 38rem; height: 38rem; bottom: -16rem; left: -10rem; background: radial-gradient(closest-side, rgba(11, 11, 12, .10), transparent); }
 
   /* Vidrio: las tarjetas flotan sobre el fondo negro, con borde de luz y sombra real en vez de un plano opaco. */
   .bg-card {
@@ -83,13 +83,13 @@
   .border-border { border-color: rgba(255, 255, 255, .12); }
   .backdrop-blur { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 
-  /* Botón principal: relieve sutil + resplandor del amarillo, no un plano de color liso. */
+  /* Botón principal: negro con relieve sutil + resplandor amarillo, como la luz de un taxi. */
   .bg-accent {
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 55%), linear-gradient(180deg, #FACC15, #EAB308);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, .3), 0 8px 20px -8px rgba(250, 204, 21, .45);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 55%), linear-gradient(180deg, #1a1a1a, #0B0B0C);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, .16), 0 8px 20px -8px rgba(250, 204, 21, .55);
   }
-  .bg-accent:hover { filter: brightness(1.05); box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, .3), 0 10px 26px -6px rgba(250, 204, 21, .6); }
-  .bg-accent:active { filter: brightness(.96); }
+  .bg-accent:hover { filter: brightness(1.15); box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, .16), 0 10px 26px -6px rgba(250, 204, 21, .7); }
+  .bg-accent:active { filter: brightness(.9); }
 
   /* Scrollbar a tono con el sistema, en vez del gris genérico del navegador. */
   * { scrollbar-width: thin; scrollbar-color: #3A3A3A transparent; }
