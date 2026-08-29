@@ -49,6 +49,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
         }
     }
 
+    if ($accion === 'editar_usuario') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $nombre = trim((string) ($_POST['nombre'] ?? ''));
+        $usuario = trim((string) ($_POST['usuario'] ?? ''));
+        $rol = (string) ($_POST['rol'] ?? 'RADIOOPERADOR');
+        $rol = in_array($rol, ['RADIOOPERADOR', 'ADMIN'], true) ? $rol : 'RADIOOPERADOR';
+
+        if ($nombre === '' || $usuario === '') {
+            $error = 'Nombre y usuario son obligatorios.';
+        } elseif ($id === (int) $usuarioActual['id'] && $rol !== 'ADMIN') {
+            $error = 'No podés quitarte tu propio rol de administrador.';
+        } else {
+            $sentencia = $pdo->prepare('SELECT id FROM tx_usuarios WHERE usuario = :usuario AND id != :id LIMIT 1');
+            $sentencia->execute(['usuario' => $usuario, 'id' => $id]);
+            if ($sentencia->fetchColumn() !== false) {
+                $error = "El usuario \"{$usuario}\" ya existe — elegí otro nombre de usuario.";
+            } else {
+                $pdo->prepare('UPDATE tx_usuarios SET nombre = :nombre, usuario = :usuario, rol = :rol WHERE id = :id AND empresa_id = :empresa')
+                    ->execute(['nombre' => $nombre, 'usuario' => $usuario, 'rol' => $rol, 'id' => $id, 'empresa' => $empresaId]);
+                header('Location: /modules/admin/usuarios.php');
+                exit;
+            }
+        }
+    }
+
     if ($accion === 'restablecer_clave') {
         $id = (int) ($_POST['id'] ?? 0);
         $claveElegida = trim((string) ($_POST['clave'] ?? ''));
@@ -143,23 +168,40 @@ $activo = 'usuarios';
     <section class="space-y-4">
       <h2 class="font-semibold text-base text-neutral-800 uppercase tracking-wide">Usuarios (<?= count($usuarios) ?>)</h2>
       <?php foreach ($usuarios as $u): ?>
-        <div class="bg-card border border-border rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p class="text-foreground font-medium">
-              <?= htmlspecialchars($u['nombre'], ENT_QUOTES, 'UTF-8') ?>
-              <span class="text-slate-500 text-sm">· <span class="font-mono"><?= htmlspecialchars($u['usuario'], ENT_QUOTES, 'UTF-8') ?></span> · <?= htmlspecialchars($u['rol'], ENT_QUOTES, 'UTF-8') ?></span>
-              <?php if ((int) $u['id'] === (int) $usuarioActual['id']): ?>
-                <span class="text-xs text-slate-500">(vos)</span>
-              <?php endif; ?>
-            </p>
-            <p class="text-xs mt-1">
+        <div class="bg-card border border-border rounded-xl p-5 space-y-4">
+          <form method="post" class="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="accion" value="editar_usuario">
+            <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+            <div>
+              <label for="u_<?= (int) $u['id'] ?>_nombre" class="block text-sm text-slate-400 mb-2">Nombre</label>
+              <input id="u_<?= (int) $u['id'] ?>_nombre" name="nombre" value="<?= htmlspecialchars($u['nombre'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-44">
+            </div>
+            <div>
+              <label for="u_<?= (int) $u['id'] ?>_usuario" class="block text-sm text-slate-400 mb-2">Usuario (login)</label>
+              <input id="u_<?= (int) $u['id'] ?>_usuario" name="usuario" value="<?= htmlspecialchars($u['usuario'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-40 font-mono">
+            </div>
+            <div>
+              <label for="u_<?= (int) $u['id'] ?>_rol" class="block text-sm text-slate-400 mb-2">Rol</label>
+              <select id="u_<?= (int) $u['id'] ?>_rol" name="rol" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
+                <option value="RADIOOPERADOR" <?= $u['rol'] === 'RADIOOPERADOR' ? 'selected' : '' ?>>Radiooperador</option>
+                <option value="ADMIN" <?= $u['rol'] === 'ADMIN' ? 'selected' : '' ?>>Administrador</option>
+              </select>
+            </div>
+            <button type="submit" class="bg-muted hover:bg-secondary text-slate-100 text-base font-medium rounded-lg px-4 py-2.5">Guardar</button>
+            <?php if ((int) $u['id'] === (int) $usuarioActual['id']): ?>
+              <span class="text-xs text-slate-500 pb-2.5">(vos)</span>
+            <?php endif; ?>
+          </form>
+
+          <div class="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-4">
+          <p class="text-xs">
               <?php if ((int) $u['activo'] === 1): ?>
                 <span class="inline-flex items-center gap-1.5 text-emerald-400"><span class="punto-estado" style="background:#22C55E"></span>Activo</span>
               <?php else: ?>
                 <span class="inline-flex items-center gap-1.5 text-slate-500"><span class="punto-estado" style="background:#64748B"></span>Desactivado</span>
               <?php endif; ?>
             </p>
-          </div>
           <div class="flex gap-2">
             <?php if ((int) $u['id'] === (int) $usuarioActual['id']): ?>
               <a href="/modules/panel/cuenta.php" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-sm font-medium rounded-lg px-4 py-2">Cambiar mi contraseña</a>
@@ -185,6 +227,7 @@ $activo = 'usuarios';
                 <?php endif; ?>
               </form>
             <?php endif; ?>
+          </div>
           </div>
         </div>
       <?php endforeach; ?>
