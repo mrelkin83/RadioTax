@@ -22,16 +22,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
         $usuario = trim((string) ($_POST['usuario'] ?? ''));
         $rol = (string) ($_POST['rol'] ?? 'RADIOOPERADOR');
         $rol = in_array($rol, ['RADIOOPERADOR', 'ADMIN'], true) ? $rol : 'RADIOOPERADOR';
+        $claveElegida = trim((string) ($_POST['clave'] ?? ''));
 
         if ($nombre === '' || $usuario === '') {
             $error = 'Nombre y usuario son obligatorios.';
+        } elseif ($claveElegida !== '' && mb_strlen($claveElegida) < 8) {
+            $error = 'La contraseña debe tener al menos 8 caracteres (o dejala vacía para generar una).';
         } else {
             $sentencia = $pdo->prepare('SELECT id FROM tx_usuarios WHERE usuario = :usuario LIMIT 1');
             $sentencia->execute(['usuario' => $usuario]);
             if ($sentencia->fetchColumn() !== false) {
                 $error = "El usuario \"{$usuario}\" ya existe — elegí otro nombre de usuario.";
             } else {
-                $clave = bin2hex(random_bytes(6));
+                $clave = $claveElegida !== '' ? $claveElegida : bin2hex(random_bytes(6));
                 $pdo->prepare(
                     'INSERT INTO tx_usuarios (empresa_id, nombre, usuario, clave_hash, rol) VALUES (:empresa, :nombre, :usuario, :hash, :rol)'
                 )->execute([
@@ -48,13 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
 
     if ($accion === 'restablecer_clave') {
         $id = (int) ($_POST['id'] ?? 0);
+        $claveElegida = trim((string) ($_POST['clave'] ?? ''));
         $sentencia = $pdo->prepare('SELECT usuario FROM tx_usuarios WHERE id = :id AND empresa_id = :empresa LIMIT 1');
         $sentencia->execute(['id' => $id, 'empresa' => $empresaId]);
         $usuarioObjetivo = $sentencia->fetchColumn();
         if ($usuarioObjetivo === false) {
             $error = 'Usuario no encontrado.';
+        } elseif ($claveElegida !== '' && mb_strlen($claveElegida) < 8) {
+            $error = 'La contraseña debe tener al menos 8 caracteres (o dejala vacía para generar una).';
         } else {
-            $clave = bin2hex(random_bytes(6));
+            $clave = $claveElegida !== '' ? $claveElegida : bin2hex(random_bytes(6));
             $pdo->prepare('UPDATE tx_usuarios SET clave_hash = :hash WHERE id = :id AND empresa_id = :empresa')
                 ->execute(['hash' => password_hash($clave, PASSWORD_DEFAULT), 'id' => $id, 'empresa' => $empresaId]);
             $credencialesNuevas = ['usuario' => (string) $usuarioObjetivo, 'clave' => $clave, 'titulo' => 'Clave restablecida'];
@@ -125,9 +131,13 @@ $activo = 'usuarios';
             <option value="ADMIN">Administrador</option>
           </select>
         </div>
+        <div>
+          <label for="nu_clave" class="block text-sm text-slate-400 mb-2">Contraseña (opcional)</label>
+          <input id="nu_clave" name="clave" type="text" minlength="8" placeholder="Dejar vacío para generar una" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base w-52 font-mono">
+        </div>
         <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Crear</button>
       </form>
-      <p class="text-sm text-slate-500 mt-3">La clave se genera sola y se muestra una única vez — no hace falta escribirla acá.</p>
+      <p class="text-sm text-slate-500 mt-3">Si no escribís una contraseña, se genera sola y se muestra una única vez.</p>
     </section>
 
     <section class="space-y-4">
@@ -154,10 +164,11 @@ $activo = 'usuarios';
             <?php if ((int) $u['id'] === (int) $usuarioActual['id']): ?>
               <a href="/modules/panel/cuenta.php" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-sm font-medium rounded-lg px-4 py-2">Cambiar mi contraseña</a>
             <?php else: ?>
-              <form method="post">
+              <form method="post" class="flex items-center gap-2">
                 <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="accion" value="restablecer_clave">
                 <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                <input name="clave" type="text" minlength="8" placeholder="Contraseña (opcional)" title="Dejar vacío para generar una automáticamente" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm w-44 font-mono">
                 <button type="submit" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-sm font-medium rounded-lg px-4 py-2">Restablecer clave</button>
               </form>
             <?php endif; ?>
