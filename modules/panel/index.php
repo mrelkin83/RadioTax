@@ -15,6 +15,8 @@ $csrf = Auth::tokenCsrf();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+<meta name="usuario-id" content="<?= (int) $usuario['id'] ?>">
+<meta name="usuario-rol" content="<?= htmlspecialchars($usuario['rol'], ENT_QUOTES, 'UTF-8') ?>">
 <title>Centro de transmisión · <?= htmlspecialchars($usuario['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></title>
 <?php require __DIR__ . '/../_tema.php'; ?>
 </head>

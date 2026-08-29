@@ -2,6 +2,8 @@
   'use strict';
 
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const usuarioIdActual = parseInt(document.querySelector('meta[name="usuario-id"]').content, 10);
+  const usuarioRolActual = document.querySelector('meta[name="usuario-rol"]').content;
   const POLL_MS = 4000;
 
   // Colores de estado: un punto real (.punto-estado, ver _tema.php), nunca un
@@ -298,11 +300,16 @@
     if (conv.ultimo_mensaje) {
       tarjeta.appendChild(el('p', { className: 'text-slate-400 text-xs mt-1 line-clamp-2', text: conv.ultimo_mensaje }));
     }
+    const atendidaPorOtro = conv.atendida_por !== null && Number(conv.atendida_por) !== usuarioIdActual && usuarioRolActual !== 'ADMIN';
+
     if (conv.atendida_por_nombre) {
       tarjeta.appendChild(el('p', { className: 'text-slate-500 text-xs mt-1', text: `Atendida por: ${conv.atendida_por_nombre}` }));
     }
+    if (atendidaPorOtro) {
+      tarjeta.appendChild(el('p', { className: 'text-amber-400 text-xs mt-1', text: 'La está atendiendo otro operador — no podés responder ni liberarla.' }));
+    }
 
-    const caja = el('textarea', { className: 'w-full mt-2 bg-muted border border-border text-foreground placeholder:text-slate-500 text-xs rounded-lg px-2.5 py-1.5', attrs: { rows: '2', placeholder: 'Responder por WhatsApp…' } });
+    const caja = el('textarea', { className: 'w-full mt-2 bg-muted border border-border text-foreground placeholder:text-slate-500 text-xs rounded-lg px-2.5 py-1.5 disabled:opacity-50', attrs: { rows: '2', placeholder: 'Responder por WhatsApp…' } });
     const acciones = el('div', { className: 'mt-2 flex gap-2' });
 
     const btnEnviar = el('button', { className: 'text-xs font-medium bg-accent hover:bg-accent-hover text-on-accent px-2.5 py-1.5 rounded-lg', text: 'Enviar' });
@@ -329,6 +336,12 @@
         btnLiberar.disabled = false;
       }
     });
+
+    if (atendidaPorOtro) {
+      caja.disabled = true;
+      btnEnviar.disabled = true;
+      btnLiberar.disabled = true;
+    }
 
     acciones.appendChild(btnEnviar);
     acciones.appendChild(btnLiberar);

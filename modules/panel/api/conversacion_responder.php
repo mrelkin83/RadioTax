@@ -27,7 +27,7 @@ $pdo = Database::conexion();
 $empresaId = $usuarioActual['empresa_id'];
 
 $sentencia = $pdo->prepare(
-    "SELECT id, telefono, estado FROM wa_conversaciones WHERE id = :id AND empresa_id = :empresa LIMIT 1"
+    "SELECT id, telefono, estado, atendida_por FROM wa_conversaciones WHERE id = :id AND empresa_id = :empresa LIMIT 1"
 );
 $sentencia->execute(['id' => $conversacionId, 'empresa' => $empresaId]);
 $conv = $sentencia->fetch();
@@ -39,6 +39,16 @@ if ($conv === false) {
 if ($conv['estado'] === 'CERRADA') {
     http_response_code(409);
     echo json_encode(['error' => 'Esta conversación está cerrada']);
+    exit;
+}
+
+$atendidaPor = $conv['atendida_por'] !== null ? (int) $conv['atendida_por'] : null;
+if ($atendidaPor !== null && $atendidaPor !== (int) $usuarioActual['id'] && $usuarioActual['rol'] !== 'ADMIN') {
+    $nombreOperador = $pdo->prepare('SELECT nombre FROM tx_usuarios WHERE id = :id LIMIT 1');
+    $nombreOperador->execute(['id' => $atendidaPor]);
+    $nombre = (string) $nombreOperador->fetchColumn();
+    http_response_code(403);
+    echo json_encode(['error' => 'Esta conversación ya la está atendiendo ' . ($nombre !== '' ? $nombre : 'otro operador') . '.']);
     exit;
 }
 

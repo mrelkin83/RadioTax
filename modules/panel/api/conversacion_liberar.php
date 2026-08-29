@@ -23,11 +23,22 @@ if ($conversacionId <= 0) {
 $pdo = Database::conexion();
 $empresaId = $usuarioActual['empresa_id'];
 
-$sentencia = $pdo->prepare('SELECT id FROM wa_conversaciones WHERE id = :id AND empresa_id = :empresa LIMIT 1');
+$sentencia = $pdo->prepare('SELECT id, atendida_por FROM wa_conversaciones WHERE id = :id AND empresa_id = :empresa LIMIT 1');
 $sentencia->execute(['id' => $conversacionId, 'empresa' => $empresaId]);
-if ($sentencia->fetchColumn() === false) {
+$conv = $sentencia->fetch();
+if ($conv === false) {
     http_response_code(404);
     echo json_encode(['error' => 'Conversación no encontrada']);
+    exit;
+}
+
+$atendidaPor = $conv['atendida_por'] !== null ? (int) $conv['atendida_por'] : null;
+if ($atendidaPor !== null && $atendidaPor !== (int) $usuarioActual['id'] && $usuarioActual['rol'] !== 'ADMIN') {
+    $nombreOperador = $pdo->prepare('SELECT nombre FROM tx_usuarios WHERE id = :id LIMIT 1');
+    $nombreOperador->execute(['id' => $atendidaPor]);
+    $nombre = (string) $nombreOperador->fetchColumn();
+    http_response_code(403);
+    echo json_encode(['error' => 'Esta conversación la está atendiendo ' . ($nombre !== '' ? $nombre : 'otro operador') . '; no podés liberarla.']);
     exit;
 }
 
