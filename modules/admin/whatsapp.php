@@ -79,7 +79,7 @@ $soloLectura = $tieneConfig && !isset($_GET['editar']);
     <section class="bg-card border border-border rounded-xl p-6">
       <h2 class="font-semibold text-lg mb-2">Token del webhook</h2>
       <p class="text-sm text-slate-400 mb-4">
-        <?= !empty($cfg['webhook_token_hash']) || $tokenNuevo !== null ? 'Ya hay uno configurado.' : 'Todavía no se ha generado.' ?>
+        <?= !empty($cfg['webhook_token_hash_configurado']) || $tokenNuevo !== null ? 'Ya hay uno configurado.' : 'Todavía no se ha generado.' ?>
         Regenerarlo invalida el anterior — hay que actualizar la URL en Evolution API.
       </p>
       <form method="post">

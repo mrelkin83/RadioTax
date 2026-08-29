@@ -110,7 +110,10 @@ class WaConfig
                 $out[$k . '_configurado'] = !empty($v);
                 continue;
             }
-            if ($k === 'webhook_token_hash') continue;           // ni el hash sale
+            if ($k === 'webhook_token_hash') {
+                $out['webhook_token_hash_configurado'] = !empty($v);  // ni el hash sale, pero sí si hay uno
+                continue;
+            }
             $out[$k] = $v;
         }
         return $out;
