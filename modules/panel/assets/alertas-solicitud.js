@@ -70,13 +70,13 @@
     modal.id = 'solicitud-alertas-modal';
     modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);backdrop-filter:blur(6px)';
     modal.innerHTML =
-      '<div class="sa-caja" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#161616;border:3px solid #facc15;border-radius:20px;padding:32px 40px;max-width:420px;width:90%;text-align:center;font-family:inherit">' +
-      '<div style="font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#facc15;font-weight:800;margin-bottom:10px">Nueva solicitud</div>' +
-      '<p id="sa-modal-cliente" style="color:#fff;font-size:19px;font-weight:700;margin:0 0 6px"></p>' +
-      '<p id="sa-modal-detalle" style="color:#d4d4d4;font-size:14px;margin:0 0 22px;line-height:1.5"></p>' +
-      '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
-      '<button id="sa-modal-ver" type="button" style="background:#facc15;color:#0b0b0c;border:none;padding:11px 26px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Ver</button>' +
-      '<button id="sa-modal-cerrar" type="button" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.25);padding:11px 26px;border-radius:10px;font-size:14px;cursor:pointer">Cerrar</button>' +
+      '<div class="sa-caja" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#161616;border:3px solid #facc15;border-radius:24px;padding:40px 32px;width:70vw;min-height:35vh;max-width:640px;box-sizing:border-box;text-align:center;font-family:inherit;display:flex;flex-direction:column;justify-content:center;align-items:center">' +
+      '<div style="font-size:clamp(16px,2.4vw,22px);letter-spacing:2px;text-transform:uppercase;color:#facc15;font-weight:800;margin-bottom:16px">Nueva solicitud</div>' +
+      '<p id="sa-modal-cliente" style="color:#fff;font-size:clamp(22px,4vw,34px);font-weight:700;margin:0 0 12px"></p>' +
+      '<p id="sa-modal-detalle" style="color:#d4d4d4;font-size:clamp(15px,2vw,19px);margin:0 0 28px;line-height:1.5"></p>' +
+      '<div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">' +
+      '<button id="sa-modal-ver" type="button" style="background:#facc15;color:#0b0b0c;border:none;padding:14px 34px;border-radius:12px;font-size:clamp(14px,1.6vw,17px);font-weight:700;cursor:pointer">Ver</button>' +
+      '<button id="sa-modal-cerrar" type="button" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.25);padding:14px 34px;border-radius:12px;font-size:clamp(14px,1.6vw,17px);cursor:pointer">Cerrar</button>' +
       '</div></div>';
     document.body.appendChild(modal);
 
