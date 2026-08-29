@@ -151,12 +151,16 @@ $activo = 'usuarios';
             </p>
           </div>
           <div class="flex gap-2">
-            <form method="post">
-              <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
-              <input type="hidden" name="accion" value="restablecer_clave">
-              <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-              <button type="submit" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-sm font-medium rounded-lg px-4 py-2">Restablecer clave</button>
-            </form>
+            <?php if ((int) $u['id'] === (int) $usuarioActual['id']): ?>
+              <a href="/modules/panel/cuenta.php" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-sm font-medium rounded-lg px-4 py-2">Cambiar mi contraseña</a>
+            <?php else: ?>
+              <form method="post">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="accion" value="restablecer_clave">
+                <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                <button type="submit" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-sm font-medium rounded-lg px-4 py-2">Restablecer clave</button>
+              </form>
+            <?php endif; ?>
             <?php if ((int) $u['id'] !== (int) $usuarioActual['id']): ?>
               <form method="post">
                 <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
