@@ -115,7 +115,7 @@ if ($tieneConfig && $qrBase64 === null) {
 <body class="bg-background text-foreground min-h-screen">
   <?php require __DIR__ . '/_nav.php'; ?>
 
-  <main class="p-6 max-w-3xl mx-auto space-y-8">
+  <main class="p-6 max-w-4xl mx-auto space-y-8">
     <?php if ($error !== null): ?>
       <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-base rounded-lg px-4 py-3" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
@@ -132,20 +132,73 @@ if ($tieneConfig && $qrBase64 === null) {
       </div>
     <?php endif; ?>
 
-    <section class="bg-card border border-border rounded-xl p-6">
-      <h2 class="font-semibold text-lg mb-2">Token del webhook</h2>
-      <p class="text-sm text-slate-400 mb-4">
-        <?= !empty($cfg['webhook_token_hash_configurado']) || $tokenNuevo !== null ? 'Ya hay uno configurado.' : 'Todavía no se ha generado.' ?>
-        Regenerarlo invalida el anterior — hay que actualizar la URL en Evolution API.
-      </p>
-      <form method="post">
-        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
-        <input type="hidden" name="accion" value="regenerar_token">
-        <button type="submit" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-base font-medium rounded-lg px-5 py-2.5">
-          Generar nuevo token
-        </button>
-      </form>
-    </section>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <section class="bg-card border border-border rounded-xl p-6">
+        <h2 class="font-semibold text-lg mb-2">Token del webhook</h2>
+        <p class="text-sm text-slate-400 mb-4">
+          <?= !empty($cfg['webhook_token_hash_configurado']) || $tokenNuevo !== null ? 'Ya hay uno configurado.' : 'Todavía no se ha generado.' ?>
+          Regenerarlo invalida el anterior — hay que actualizar la URL en Evolution API.
+        </p>
+        <form method="post">
+          <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+          <input type="hidden" name="accion" value="regenerar_token">
+          <button type="submit" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-base font-medium rounded-lg px-5 py-2.5">
+            Generar nuevo token
+          </button>
+        </form>
+      </section>
+
+      <?php if ($tieneConfig): ?>
+        <section class="bg-card border border-border rounded-xl p-6 space-y-4">
+          <h2 class="font-semibold text-lg">Conectar WhatsApp</h2>
+
+          <?php if ($conectarError !== null): ?>
+            <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-4 py-3"><?= htmlspecialchars($conectarError, ENT_QUOTES, 'UTF-8') ?></p>
+          <?php endif; ?>
+          <?php if ($desconectarOk): ?>
+            <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-sm rounded-lg px-4 py-3">WhatsApp desconectado.</p>
+          <?php endif; ?>
+          <?php if ($desconectarError !== null): ?>
+            <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-4 py-3"><?= htmlspecialchars($desconectarError, ENT_QUOTES, 'UTF-8') ?></p>
+          <?php endif; ?>
+
+          <?php if ($qrBase64 !== null): ?>
+            <p class="text-sm text-slate-400">Escaneá este código con WhatsApp (Dispositivos vinculados → Vincular un dispositivo). Se actualiza cada vez que tocás "Conectar WhatsApp".</p>
+            <img src="<?= htmlspecialchars($qrBase64, ENT_QUOTES, 'UTF-8') ?>" alt="Código QR para vincular WhatsApp" class="rounded-lg border border-border w-56 h-56 bg-white p-2">
+          <?php elseif ($estadoConexion !== null): ?>
+            <p class="text-sm text-slate-400">
+              Estado:
+              <?php if ($estadoConexion['estado'] === 'conectado'): ?>
+                <span class="text-emerald-400 font-medium">conectado<?= !empty($estadoConexion['numero']) ? ' (' . htmlspecialchars((string) $estadoConexion['numero'], ENT_QUOTES, 'UTF-8') . ')' : '' ?></span>
+              <?php elseif ($estadoConexion['estado'] === 'qr'): ?>
+                <span class="text-amber-400 font-medium">esperando que se escanee el QR</span>
+              <?php elseif ($estadoConexion['estado'] === 'error'): ?>
+                <span class="text-red-400 font-medium">no se pudo consultar (<?= htmlspecialchars((string) $estadoConexion['mensaje'], ENT_QUOTES, 'UTF-8') ?>)</span>
+              <?php else: ?>
+                <span class="text-slate-300 font-medium">desconectado</span>
+              <?php endif; ?>
+            </p>
+          <?php endif; ?>
+
+          <div class="flex gap-3">
+            <form method="post">
+              <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+              <input type="hidden" name="accion" value="conectar">
+              <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">
+                <?= $qrBase64 !== null || ($estadoConexion['estado'] ?? '') === 'qr' ? 'Generar QR de nuevo' : 'Conectar WhatsApp' ?>
+              </button>
+            </form>
+            <?php if (($estadoConexion['estado'] ?? '') === 'conectado'): ?>
+              <form method="post">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="accion" value="desconectar">
+                <button type="submit" class="bg-destructive/15 hover:bg-destructive/25 text-red-300 text-base font-medium rounded-lg px-5 py-2.5">Desconectar</button>
+              </form>
+            <?php endif; ?>
+          </div>
+        </section>
+      <?php endif; ?>
+    </div>
 
     <form method="post" class="bg-card border border-border rounded-xl p-6 space-y-6">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
@@ -196,57 +249,6 @@ if ($tieneConfig && $qrBase64 === null) {
         <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
       <?php endif; ?>
     </form>
-
-    <?php if ($tieneConfig): ?>
-      <section class="bg-card border border-border rounded-xl p-6 space-y-4">
-        <h2 class="font-semibold text-lg">Conectar WhatsApp</h2>
-
-        <?php if ($conectarError !== null): ?>
-          <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-4 py-3"><?= htmlspecialchars($conectarError, ENT_QUOTES, 'UTF-8') ?></p>
-        <?php endif; ?>
-        <?php if ($desconectarOk): ?>
-          <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-sm rounded-lg px-4 py-3">WhatsApp desconectado.</p>
-        <?php endif; ?>
-        <?php if ($desconectarError !== null): ?>
-          <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-4 py-3"><?= htmlspecialchars($desconectarError, ENT_QUOTES, 'UTF-8') ?></p>
-        <?php endif; ?>
-
-        <?php if ($qrBase64 !== null): ?>
-          <p class="text-sm text-slate-400">Escaneá este código con WhatsApp (Dispositivos vinculados → Vincular un dispositivo). Se actualiza cada vez que tocás "Conectar WhatsApp".</p>
-          <img src="<?= htmlspecialchars($qrBase64, ENT_QUOTES, 'UTF-8') ?>" alt="Código QR para vincular WhatsApp" class="rounded-lg border border-border w-64 h-64 bg-white p-2">
-        <?php elseif ($estadoConexion !== null): ?>
-          <p class="text-sm text-slate-400">
-            Estado:
-            <?php if ($estadoConexion['estado'] === 'conectado'): ?>
-              <span class="text-emerald-400 font-medium">conectado<?= !empty($estadoConexion['numero']) ? ' (' . htmlspecialchars((string) $estadoConexion['numero'], ENT_QUOTES, 'UTF-8') . ')' : '' ?></span>
-            <?php elseif ($estadoConexion['estado'] === 'qr'): ?>
-              <span class="text-amber-400 font-medium">esperando que se escanee el QR</span>
-            <?php elseif ($estadoConexion['estado'] === 'error'): ?>
-              <span class="text-red-400 font-medium">no se pudo consultar (<?= htmlspecialchars((string) $estadoConexion['mensaje'], ENT_QUOTES, 'UTF-8') ?>)</span>
-            <?php else: ?>
-              <span class="text-slate-300 font-medium">desconectado</span>
-            <?php endif; ?>
-          </p>
-        <?php endif; ?>
-
-        <div class="flex gap-3">
-          <form method="post">
-            <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
-            <input type="hidden" name="accion" value="conectar">
-            <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">
-              <?= $qrBase64 !== null || ($estadoConexion['estado'] ?? '') === 'qr' ? 'Generar QR de nuevo' : 'Conectar WhatsApp' ?>
-            </button>
-          </form>
-          <?php if (($estadoConexion['estado'] ?? '') === 'conectado'): ?>
-            <form method="post">
-              <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
-              <input type="hidden" name="accion" value="desconectar">
-              <button type="submit" class="bg-destructive/15 hover:bg-destructive/25 text-red-300 text-base font-medium rounded-lg px-5 py-2.5">Desconectar</button>
-            </form>
-          <?php endif; ?>
-        </div>
-      </section>
-    <?php endif; ?>
   </main>
 </body>
 </html>
