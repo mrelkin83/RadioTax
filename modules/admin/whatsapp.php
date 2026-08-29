@@ -128,7 +128,7 @@ if ($tieneConfig && $qrBase64 === null) {
         <p class="font-medium">Token del webhook generado — guárdalo ahora, no se vuelve a mostrar:</p>
         <code class="block bg-muted border border-border rounded-lg p-3 break-all font-mono text-sm"><?= htmlspecialchars($tokenNuevo, ENT_QUOTES, 'UTF-8') ?></code>
         <p>URL del webhook para configurar en Evolution API:</p>
-        <code class="block bg-muted border border-border rounded-lg p-3 break-all font-mono text-sm">https://TU-DOMINIO/modules/webhook/mensajes.php?token=<?= htmlspecialchars($tokenNuevo, ENT_QUOTES, 'UTF-8') ?></code>
+        <code class="block bg-muted border border-border rounded-lg p-3 break-all font-mono text-sm"><?= htmlspecialchars(urlWebhookActual($tokenNuevo), ENT_QUOTES, 'UTF-8') ?></code>
       </div>
     <?php endif; ?>
 
