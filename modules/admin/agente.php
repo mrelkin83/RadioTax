@@ -103,7 +103,7 @@ $activo = 'agente';
 <body class="bg-background text-foreground min-h-screen">
   <?php require __DIR__ . '/_nav.php'; ?>
 
-  <main class="p-6 max-w-3xl mx-auto space-y-8">
+  <main class="p-6 max-w-6xl mx-auto space-y-8">
     <?php if ($error !== null): ?>
       <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-base rounded-lg px-4 py-3" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
@@ -118,7 +118,8 @@ $activo = 'agente';
       del motor (esas no se pueden editar desde aquí), solo el rol, el tono y los mensajes que le corresponden a esta empresa.
     </p>
 
-    <form method="post" class="bg-card border border-border rounded-xl p-6 space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <form method="post" class="lg:col-span-2 bg-card border border-border rounded-xl p-6 space-y-6">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
       <input type="hidden" name="accion" value="guardar_agente">
 
@@ -196,12 +197,12 @@ $activo = 'agente';
     <section class="bg-card border border-border rounded-xl p-6">
       <h2 class="font-semibold text-lg mb-2">Dónde opera</h2>
       <p class="text-sm text-slate-400 mb-4">País, departamento y ciudad donde presta servicio esta empresa.</p>
-      <form method="post" class="flex flex-wrap items-end gap-3">
+      <form method="post" class="flex flex-col gap-3">
         <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
         <input type="hidden" name="accion" value="guardar_ubicacion">
         <div>
           <label for="ub_pais" class="block text-sm text-slate-400 mb-2">País</label>
-          <select id="ub_pais" name="pais" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-44">
+          <select id="ub_pais" name="pais" class="w-full rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
             <option value="">Selecciona…</option>
             <?php foreach (array_keys($departamentosPorPais) as $nombrePais): ?>
               <option value="<?= htmlspecialchars($nombrePais, ENT_QUOTES, 'UTF-8') ?>" <?= ($empresaUbicacion['pais'] ?? '') === $nombrePais ? 'selected' : '' ?>><?= htmlspecialchars($nombrePais, ENT_QUOTES, 'UTF-8') ?></option>
@@ -210,13 +211,13 @@ $activo = 'agente';
         </div>
         <div>
           <label for="ub_departamento" class="block text-sm text-slate-400 mb-2">Departamento / Estado</label>
-          <select id="ub_departamento" name="departamento" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-52">
+          <select id="ub_departamento" name="departamento" class="w-full rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
             <option value="">Selecciona un país primero…</option>
           </select>
         </div>
         <div>
           <label for="ub_ciudad" class="block text-sm text-slate-400 mb-2">Ciudad</label>
-          <input id="ub_ciudad" name="ciudad" required value="<?= htmlspecialchars((string) ($empresaUbicacion['ciudad'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-48">
+          <input id="ub_ciudad" name="ciudad" required value="<?= htmlspecialchars((string) ($empresaUbicacion['ciudad'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="w-full rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
         </div>
         <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
       </form>
@@ -224,7 +225,7 @@ $activo = 'agente';
       <div class="mt-5 pt-5 border-t border-border">
         <h3 class="font-medium text-base mb-1">Liberación automática de vehículos</h3>
         <p class="text-sm text-slate-400 mb-4">Sin GPS del conductor, el sistema estima cuándo termina cada servicio (tiempo de llegada del taxi al punto de recogida + tiempo del recorrido, con margen) y libera el vehículo solo cuando se cumple — el operador puede seguir liberándolo a mano en cualquier momento desde el estado del vehículo.</p>
-        <form method="post" class="flex flex-wrap items-end gap-3">
+        <form method="post" class="flex flex-col gap-3">
           <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
           <input type="hidden" name="accion" value="guardar_ubicacion">
           <input type="hidden" name="pais" value="<?= htmlspecialchars((string) ($empresaUbicacion['pais'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
@@ -232,16 +233,17 @@ $activo = 'agente';
           <input type="hidden" name="ciudad" value="<?= htmlspecialchars((string) ($empresaUbicacion['ciudad'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
           <div>
             <label for="ub_tiempo_llegada" class="block text-sm text-slate-400 mb-2">Tiempo de llegada del taxi (min)</label>
-            <input id="ub_tiempo_llegada" name="tiempo_llegada_taxi_min" type="number" min="1" max="60" placeholder="10" value="<?= htmlspecialchars((string) ($empresaUbicacion['tiempo_llegada_taxi_min'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-40">
+            <input id="ub_tiempo_llegada" name="tiempo_llegada_taxi_min" type="number" min="1" max="60" placeholder="10" value="<?= htmlspecialchars((string) ($empresaUbicacion['tiempo_llegada_taxi_min'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="w-full rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
           </div>
           <div>
             <label for="ub_velocidad" class="block text-sm text-slate-400 mb-2">Velocidad promedio (km/h)</label>
-            <input id="ub_velocidad" name="velocidad_promedio_kmh" type="number" min="1" max="120" placeholder="25" value="<?= htmlspecialchars((string) ($empresaUbicacion['velocidad_promedio_kmh'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-40">
+            <input id="ub_velocidad" name="velocidad_promedio_kmh" type="number" min="1" max="120" placeholder="25" value="<?= htmlspecialchars((string) ($empresaUbicacion['velocidad_promedio_kmh'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="w-full rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
           </div>
           <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
         </form>
       </div>
     </section>
+    </div>
   </main>
 
   <script>
