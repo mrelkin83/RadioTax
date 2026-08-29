@@ -35,6 +35,7 @@ use ElkinLinan\WhatsappAiEngine\Core\WaConfig;
 use ElkinLinan\WhatsappAiEngine\Engine;
 use TaxiApp\Core\ConectorMotor;
 use TaxiApp\Core\Database;
+use TaxiApp\Core\Notificaciones;
 
 if (session_status() === PHP_SESSION_ACTIVE) {
     @session_abort();
@@ -125,6 +126,23 @@ if (!$msg) {
     exit;
 }
 
+// §10: un conductor que escribe por el mismo número de la empresa no
+// conversa con el agente — se le contesta ACEPTO/RECHAZO por un camino
+// aparte, sin pasar por wa_conversaciones ni por el LLM. Se resuelve ANTES
+// del flujo de cliente a propósito, para que un conductor jamás caiga en
+// el agente y viceversa.
+$conductorId = conductorDelTelefono($empresaId, $msg['telefono']);
+if ($conductorId !== null) {
+    responder200(['ok' => true]);
+    try {
+        procesarRespuestaConductor($empresaId, $canal, $conductorId, trim((string) $msg['texto']), $msg['telefono']);
+    } catch (\Throwable $e) {
+        $log->error('Fallo procesando respuesta de conductor: ' . $e->getMessage()
+            . ' [' . basename($e->getFile()) . ':' . $e->getLine() . ']');
+    }
+    exit;
+}
+
 $cm = new ConversationManager($db);
 $conv = $cm->obtenerOCrear($msg['telefono'], $msg['nombre']);
 
@@ -197,4 +215,104 @@ function procesarMensaje($db, AuditLogger $log, $canal, array $cfg, array $conv,
     // usaría, por ejemplo, para mandar la voz de vuelta si hubiera TTS).
     $orq = new AiOrchestrator($db, $canal, $log);
     $orq->procesar($conv, $texto);
+}
+
+/**
+ * Id del conductor de esta empresa dueño de este número, o null.
+ *
+ * Compara por los últimos 10 dígitos (el celular colombiano sin el indicativo
+ * de país), no el número completo: quien lo registra a mano en el panel no
+ * siempre teclea el "57", y WhatsApp SIEMPRE lo manda en el JID. Comparar
+ * exacto dejaba a todo conductor sin poder confirmar nunca — el mensaje caía
+ * en el flujo de cliente en vez de en el de confirmación.
+ */
+function conductorDelTelefono(int $empresaId, string $telefono): ?int
+{
+    if (strpos($telefono, '@') !== false) {
+        return null; // JID de un LID (@lid): no es un teléfono comparable, no puede ser un conductor registrado
+    }
+
+    $sentencia = Database::conexion()->prepare(
+        "SELECT id FROM tx_conductores
+         WHERE empresa_id = :empresa AND estado = 'ACTIVO'
+           AND RIGHT(whatsapp, 10) = RIGHT(:whatsapp, 10) AND whatsapp IS NOT NULL AND whatsapp != ''
+         LIMIT 1"
+    );
+    $sentencia->execute(['empresa' => $empresaId, 'whatsapp' => $telefono]);
+    $id = $sentencia->fetchColumn();
+
+    return $id !== false ? (int) $id : null;
+}
+
+/**
+ * ACEPTO/RECHAZO de un conductor (§10, criterio de hecho de Fase 2: "un
+ * rechazo devuelve la carrera a despacho sin intervención de código").
+ * Idempotente a propósito: solo actúa si la asignación sigue SIN_RESPUESTA,
+ * así que un reintento del webhook o un "ACEPTO" repetido no hacen nada raro.
+ */
+function procesarRespuestaConductor(int $empresaId, $canal, int $conductorId, string $texto, string $telefono): void
+{
+    $pdo = Database::conexion();
+
+    $sentencia = $pdo->prepare(
+        "SELECT a.id AS asignacion_id, c.id AS carrera_id, c.vehiculo_id
+         FROM tx_asignaciones a
+         INNER JOIN tx_carreras c ON c.id = a.carrera_id
+         WHERE c.conductor_id = :conductor AND c.empresa_id = :empresa AND a.resultado = 'SIN_RESPUESTA'
+         ORDER BY a.id DESC LIMIT 1"
+    );
+    $sentencia->execute(['conductor' => $conductorId, 'empresa' => $empresaId]);
+    $pendiente = $sentencia->fetch();
+
+    if ($pendiente === false) {
+        Notificaciones::enviar($empresaId, $telefono, 'No tengo ningún servicio pendiente de tu confirmación en este momento.');
+        return;
+    }
+
+    $textoNorm = mb_strtoupper(trim($texto));
+    $esAceptacion = (bool) preg_match('/\b(ACEPTO|SI|SÍ|OK|VALE)\b/u', $textoNorm);
+    $esRechazo = (bool) preg_match('/\b(RECHAZO|NO|CANCELO)\b/u', $textoNorm);
+
+    if (!$esAceptacion && !$esRechazo) {
+        Notificaciones::enviar($empresaId, $telefono, 'No entendí tu respuesta 🙏 Responde ACEPTO o RECHAZO.');
+        return;
+    }
+
+    $carreraId = (int) $pendiente['carrera_id'];
+    $vehiculoId = (int) $pendiente['vehiculo_id'];
+
+    if ($esAceptacion) {
+        $pdo->prepare('UPDATE tx_asignaciones SET resultado = "ACEPTADA" WHERE id = :id')
+            ->execute(['id' => $pendiente['asignacion_id']]);
+        $pdo->prepare(
+            'INSERT INTO tx_carrera_eventos (carrera_id, evento, actor_tipo, detalle)
+             VALUES (:carrera, "CONDUCTOR_ACEPTO", "CONDUCTOR", :detalle)'
+        )->execute(['carrera' => $carreraId, 'detalle' => json_encode(['conductor_id' => $conductorId], JSON_UNESCAPED_UNICODE)]);
+
+        Notificaciones::enviar($empresaId, $telefono, '👍 Confirmado, gracias.');
+        Notificaciones::notificarClienteAsignacion($pdo, $empresaId, $carreraId, null);
+        return;
+    }
+
+    // Rechazo: se libera el vehículo y la carrera vuelve a despacho SIN
+    // tocar código — el radiooperador la vuelve a ver en la cola.
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE tx_asignaciones SET resultado = "RECHAZADA" WHERE id = :id')
+            ->execute(['id' => $pendiente['asignacion_id']]);
+        $pdo->prepare('UPDATE tx_carreras SET estado = "EN_DESPACHO", vehiculo_id = NULL, conductor_id = NULL WHERE id = :id')
+            ->execute(['id' => $carreraId]);
+        $pdo->prepare('UPDATE tx_vehiculos SET estado_vehiculo = "DISPONIBLE" WHERE id = :id')
+            ->execute(['id' => $vehiculoId]);
+        $pdo->prepare(
+            'INSERT INTO tx_carrera_eventos (carrera_id, evento, actor_tipo, detalle)
+             VALUES (:carrera, "CONDUCTOR_RECHAZO", "CONDUCTOR", :detalle)'
+        )->execute(['carrera' => $carreraId, 'detalle' => json_encode(['conductor_id' => $conductorId], JSON_UNESCAPED_UNICODE)]);
+        $pdo->commit();
+    } catch (\Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+
+    Notificaciones::enviar($empresaId, $telefono, 'Entendido, gracias por avisar.');
 }

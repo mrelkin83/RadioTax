@@ -45,13 +45,17 @@ Siete commits en el repo local: `d435ecb`, `78b2c56`, `090f2cf`, `f34abab`, `e7c
 - `TaxiAdapter` expone su lógica real bajo nombres propios (`crearCarrera`, `estadoCarrera`, `cancelarCarrera`, `confirmarCarrera`, `calcularTotalCarrera`) porque los nombres del contrato (`crearTransaccion`, `estadoTransaccion`...) están reclamados por `DomainAdapter` con firmas de carrito de compra que no traducen a un viaje.
 - `TaxiTenant` es "una base, una columna" (`scopeFila()` con `empresa_id`), igual que MayTech POS, no "una base por empresa" como ControlBarMax.
 
+## FASE 2 — Flota y notificación al conductor (CERRADA, código; falta Evolution real)
+
+Notificación al conductor por WhatsApp al asignar + respuesta ACEPTO/RECHAZO que reasigna sin tocar código, probado de punta a punta con payloads simulados. Ver `SPEC.md` para el detalle, incluido un bug real de normalización de teléfonos encontrado y corregido en el camino (comparar `RIGHT(whatsapp, 10)`, no el número completo).
+
 ## Próximos pasos (en orden)
 
-1. **Único bloqueante real que queda**: levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp de verdad, apuntando su webhook a `https://TU-DOMINIO/modules/webhook/mensajes.php?token=<el-de-wa_config>`. Con eso, el flujo completo (probado hoy con payloads simulados) funciona con clientes reales sin tocar código.
-2. Notificar al conductor por WhatsApp al asignar (§10) — hoy solo se notifica al cliente.
-3. Panel administrativo completo (empresas, líneas, agentes de IA) — reportes ya están (ver abajo), falta el resto de Fase 3.
-4. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
-5. Voz e imagen (STT/TTS/Visión) — credenciales de proveedor aparte, no urgente para el MVP.
+1. **Único bloqueante real que queda para producción**: levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp de verdad, apuntando su webhook a `https://TU-DOMINIO/modules/webhook/mensajes.php?token=<el-de-wa_config>`. Con eso, todo lo construido y probado con payloads simulados (Fase 1 y Fase 2) funciona con clientes y conductores reales sin tocar código.
+2. Panel administrativo completo (empresas, líneas, agentes de IA) — reportes ya están, falta el resto de Fase 3. En particular: alta de una segunda empresa de prueba de punta a punta desde el panel (criterio de hecho de Fase 3).
+3. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
+4. Voz e imagen (STT/TTS/Visión) — credenciales de proveedor aparte, no urgente para el MVP.
+5. **Fase 4 (GPS, modo automático) está fuera del alcance de una sesión de código**: necesita una app Android nativa del conductor y pruebas con GPS real. No se puede "terminar" escribiendo PHP — es un proyecto de desarrollo móvil aparte.
 
 ### Ya cerrado en esta sesión (no repetir)
 

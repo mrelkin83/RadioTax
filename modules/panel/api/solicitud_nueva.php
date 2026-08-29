@@ -36,7 +36,10 @@ if ($lineaId === false) {
     exit;
 }
 
-$sentencia = $pdo->prepare('SELECT id FROM tx_clientes WHERE empresa_id = :empresa AND whatsapp = :whatsapp LIMIT 1');
+// Por los últimos 10 dígitos: quien lo teclea aquí no siempre pone el
+// indicativo de país, y el motor sí lo manda siempre en el JID de WhatsApp
+// — comparar exacto duplicaba al mismo cliente entre panel y WhatsApp.
+$sentencia = $pdo->prepare('SELECT id FROM tx_clientes WHERE empresa_id = :empresa AND RIGHT(whatsapp, 10) = RIGHT(:whatsapp, 10) LIMIT 1');
 $sentencia->execute(['empresa' => $empresaId, 'whatsapp' => $clienteWhatsapp]);
 $clienteId = $sentencia->fetchColumn();
 

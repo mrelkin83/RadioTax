@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use ElkinLinan\WhatsappAiEngine\Channel\EvolutionClient;
-use ElkinLinan\WhatsappAiEngine\Engine;
 use TaxiApp\Core\Auth;
-use TaxiApp\Core\ConectorMotor;
 use TaxiApp\Core\Database;
+use TaxiApp\Core\Notificaciones;
 
 Auth::verificarCsrf();
 
@@ -52,14 +50,22 @@ if ($sentencia->fetch() === false) {
 }
 
 $sentencia = $pdo->prepare(
-    'SELECT conductor_id FROM tx_vehiculo_conductor WHERE vehiculo_id = :vehiculo AND fecha_hasta IS NULL LIMIT 1'
+    'SELECT cond.id, cond.whatsapp FROM tx_vehiculo_conductor vc
+     INNER JOIN tx_conductores cond ON cond.id = vc.conductor_id
+     WHERE vc.vehiculo_id = :vehiculo AND vc.fecha_hasta IS NULL LIMIT 1'
 );
 $sentencia->execute(['vehiculo' => $vehiculoId]);
-$conductorId = $sentencia->fetchColumn();
-$conductorId = $conductorId !== false ? (int) $conductorId : null;
+$conductor = $sentencia->fetch();
+$conductorId = $conductor !== false ? (int) $conductor['id'] : null;
+$whatsappConductor = $conductor !== false ? (string) ($conductor['whatsapp'] ?? '') : '';
 
-// Nota: en v1 el radiooperador ya confirmó por radioteléfono antes de pulsar
-// este botón (§7 del system prompt maestro), por eso resultado='ACEPTADA'.
+// §10: si el conductor tiene WhatsApp registrado, se le pide confirmación
+// (modo WhatsApp — medio pendiente hasta que responda ACEPTO/RECHAZO). Si
+// no tiene, o el envío falla, se cae al modo v1: el radiooperador YA
+// confirmó por radioteléfono antes de pulsar este botón, así que queda
+// aceptada de una vez (medio=RADIO).
+$usaConfirmacionWhatsapp = $whatsappConductor !== '';
+
 $pdo->beginTransaction();
 try {
     $pdo->prepare(
@@ -70,9 +76,14 @@ try {
         ->execute(['id' => $vehiculoId]);
 
     $pdo->prepare(
-        "INSERT INTO tx_asignaciones (carrera_id, vehiculo_id, propuesto_por, decidido_por, resultado, medio)
-         VALUES (:carrera, :vehiculo, 'RADIOOPERADOR', 'RADIOOPERADOR', 'ACEPTADA', 'RADIO')"
-    )->execute(['carrera' => $carreraId, 'vehiculo' => $vehiculoId]);
+        'INSERT INTO tx_asignaciones (carrera_id, vehiculo_id, propuesto_por, decidido_por, resultado, medio)
+         VALUES (:carrera, :vehiculo, "RADIOOPERADOR", "RADIOOPERADOR", :resultado, :medio)'
+    )->execute([
+        'carrera' => $carreraId,
+        'vehiculo' => $vehiculoId,
+        'resultado' => $usaConfirmacionWhatsapp ? 'SIN_RESPUESTA' : 'ACEPTADA',
+        'medio' => $usaConfirmacionWhatsapp ? 'WHATSAPP' : 'RADIO',
+    ]);
 
     $pdo->prepare(
         'INSERT INTO tx_carrera_eventos (carrera_id, evento, actor_tipo, actor_id, detalle)
@@ -80,7 +91,7 @@ try {
     )->execute([
         'carrera' => $carreraId,
         'actor' => $usuarioActual['id'],
-        'detalle' => json_encode(['vehiculo_id' => $vehiculoId, 'conductor_id' => $conductorId], JSON_UNESCAPED_UNICODE),
+        'detalle' => json_encode(['vehiculo_id' => $vehiculoId, 'conductor_id' => $conductorId, 'medio' => $usaConfirmacionWhatsapp ? 'WHATSAPP' : 'RADIO'], JSON_UNESCAPED_UNICODE),
     ]);
 
     $pdo->commit();
@@ -91,56 +102,14 @@ try {
     exit;
 }
 
-// El bot le confirma al cliente (§7). Es "mejor esfuerzo": si el motor no
-// está configurado o el envío falla, la asignación YA quedó hecha — no se
-// revierte por esto. El resultado queda en tx_carrera_eventos, no en un
-// error de la petición.
-notificarClienteAsignacion($pdo, $empresaId, $carreraId, $vehiculoId, $usuarioActual['id']);
-
-echo json_encode(['ok' => true]);
-
-function notificarClienteAsignacion(PDO $pdo, int $empresaId, int $carreraId, int $vehiculoId, int $usuarioId): void
-{
-    $sentencia = $pdo->prepare(
-        'SELECT c.whatsapp, v.numero_interno, v.placa, cond.nombre AS conductor_nombre
-         FROM tx_carreras carr
-         INNER JOIN tx_clientes c ON c.id = carr.cliente_id
-         INNER JOIN tx_vehiculos v ON v.id = :vehiculo
-         LEFT JOIN tx_vehiculo_conductor vc ON vc.vehiculo_id = v.id AND vc.fecha_hasta IS NULL
-         LEFT JOIN tx_conductores cond ON cond.id = vc.conductor_id
-         WHERE carr.id = :carrera'
-    );
-    $sentencia->execute(['vehiculo' => $vehiculoId, 'carrera' => $carreraId]);
-    $datos = $sentencia->fetch();
-    if ($datos === false || empty($datos['whatsapp'])) {
-        return;
-    }
-
-    $texto = "🚕 Tu servicio fue asignado al vehículo {$datos['numero_interno']}"
-        . ($datos['placa'] ? " ({$datos['placa']})" : '')
-        . ($datos['conductor_nombre'] ? ", conductor {$datos['conductor_nombre']}" : '')
-        . '. Ya va en camino.';
-
-    $resultado = 'sin_intentar';
-    try {
-        ConectorMotor::conectar($empresaId);
-        $canal = EvolutionClient::desdeConfig(Engine::db());
-        if ($canal === null) {
-            $resultado = 'motor_no_configurado';
-        } else {
-            $envio = $canal->enviarTexto($datos['whatsapp'], $texto);
-            $resultado = !empty($envio['ok']) ? 'enviado' : ('fallo: ' . ($envio['error'] ?? ''));
-        }
-    } catch (\Throwable $e) {
-        $resultado = 'excepcion: ' . $e->getMessage();
-    }
-
-    $pdo->prepare(
-        'INSERT INTO tx_carrera_eventos (carrera_id, evento, actor_tipo, actor_id, detalle)
-         VALUES (:carrera, "NOTIFICACION_CLIENTE", "SISTEMA", :actor, :detalle)'
-    )->execute([
-        'carrera' => $carreraId,
-        'actor' => $usuarioId,
-        'detalle' => json_encode(['resultado' => $resultado], JSON_UNESCAPED_UNICODE),
-    ]);
+if ($usaConfirmacionWhatsapp) {
+    // Se le pregunta al conductor; si el envío falla de plano, no hay forma
+    // de que responda — mejor esfuerzo, el radiooperador lo verá en el
+    // evento SOLICITUD_CONFIRMACION_CONDUCTOR si algo salió mal.
+    Notificaciones::pedirConfirmacionConductor($pdo, $empresaId, $carreraId, $whatsappConductor);
+} else {
+    // Modo radio: ya está aceptada, se le confirma al cliente de una vez (§7).
+    Notificaciones::notificarClienteAsignacion($pdo, $empresaId, $carreraId, $usuarioActual['id']);
 }
+
+echo json_encode(['ok' => true, 'modo' => $usaConfirmacionWhatsapp ? 'whatsapp' : 'radio']);

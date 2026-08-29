@@ -86,8 +86,16 @@ final class TaxiAdapter implements
         }
 
         $empresaId = $this->empresaId();
+        // Por los últimos 10 dígitos, no el número completo: un cliente
+        // registrado a mano (panel, WhatsApp manual) no siempre trae el
+        // indicativo de país, y el motor SIEMPRE lo manda en el JID. Un LID
+        // (@lid, sin número real) sí se compara exacto — no hay dígitos que
+        // recortar y dos LID solo coinciden si son el mismo identificador.
+        $porSufijo = !str_contains($whatsapp, '@');
         $sentencia = $this->conexion()->prepare(
-            'SELECT id FROM tx_clientes WHERE empresa_id = :empresa AND whatsapp = :whatsapp LIMIT 1'
+            $porSufijo
+                ? 'SELECT id FROM tx_clientes WHERE empresa_id = :empresa AND RIGHT(whatsapp, 10) = RIGHT(:whatsapp, 10) LIMIT 1'
+                : 'SELECT id FROM tx_clientes WHERE empresa_id = :empresa AND whatsapp = :whatsapp LIMIT 1'
         );
         $sentencia->execute(['empresa' => $empresaId, 'whatsapp' => $whatsapp]);
         $id = $sentencia->fetchColumn();
