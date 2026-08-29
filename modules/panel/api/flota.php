@@ -5,8 +5,12 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 
 use TaxiApp\Core\Database;
+use TaxiApp\Domain\EstimadorLiberacion;
 
-$sentencia = Database::conexion()->prepare(
+$pdo = Database::conexion();
+EstimadorLiberacion::liberarVencidos($pdo, $usuarioActual['empresa_id']);
+
+$sentencia = $pdo->prepare(
     "SELECT v.id, v.numero_interno, v.placa, v.tipo, v.estado_vehiculo,
             cond.id AS conductor_id, cond.nombre AS conductor_nombre,
             t.id AS turno_id, t.inicio AS turno_inicio

@@ -34,14 +34,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
         $pais = trim((string) ($_POST['pais'] ?? ''));
         $departamento = trim((string) ($_POST['departamento'] ?? ''));
         $ciudad = trim((string) ($_POST['ciudad'] ?? ''));
+        $tiempoLlegada = (int) ($_POST['tiempo_llegada_taxi_min'] ?? 0);
+        $velocidadPromedio = (int) ($_POST['velocidad_promedio_kmh'] ?? 0);
         if ($pais !== '' && !isset($departamentosPorPais[$pais])) {
             $pais = '';
         }
         if ($ciudad === '') {
             $error = 'La ciudad es obligatoria.';
         } else {
-            $pdo->prepare('UPDATE tx_empresas SET pais = :pais, departamento = :departamento, ciudad = :ciudad WHERE id = :id')
-                ->execute(['pais' => $pais ?: null, 'departamento' => $departamento ?: null, 'ciudad' => $ciudad, 'id' => $empresaId]);
+            $pdo->prepare(
+                'UPDATE tx_empresas SET pais = :pais, departamento = :departamento, ciudad = :ciudad,
+                        tiempo_llegada_taxi_min = :tiempo_llegada, velocidad_promedio_kmh = :velocidad
+                 WHERE id = :id'
+            )->execute([
+                'pais' => $pais ?: null,
+                'departamento' => $departamento ?: null,
+                'ciudad' => $ciudad,
+                'tiempo_llegada' => $tiempoLlegada > 0 ? $tiempoLlegada : null,
+                'velocidad' => $velocidadPromedio > 0 ? $velocidadPromedio : null,
+                'id' => $empresaId,
+            ]);
             header('Location: /modules/admin/agente.php?guardado=ubicacion');
             exit;
         }
@@ -69,9 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
 
 $agente = $gestor->activo();
 
-$sentenciaEmpresa = $pdo->prepare('SELECT pais, departamento, ciudad FROM tx_empresas WHERE id = :id LIMIT 1');
+$sentenciaEmpresa = $pdo->prepare('SELECT pais, departamento, ciudad, tiempo_llegada_taxi_min, velocidad_promedio_kmh FROM tx_empresas WHERE id = :id LIMIT 1');
 $sentenciaEmpresa->execute(['id' => $empresaId]);
-$empresaUbicacion = $sentenciaEmpresa->fetch() ?: ['pais' => '', 'departamento' => '', 'ciudad' => ''];
+$empresaUbicacion = $sentenciaEmpresa->fetch() ?: ['pais' => '', 'departamento' => '', 'ciudad' => '', 'tiempo_llegada_taxi_min' => null, 'velocidad_promedio_kmh' => null];
 
 if (isset($_GET['guardado'])) {
     $guardadoSeccion = (string) $_GET['guardado'];
@@ -208,6 +220,27 @@ $activo = 'agente';
         </div>
         <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
       </form>
+
+      <div class="mt-5 pt-5 border-t border-border">
+        <h3 class="font-medium text-base mb-1">Liberación automática de vehículos</h3>
+        <p class="text-sm text-slate-400 mb-4">Sin GPS del conductor, el sistema estima cuándo termina cada servicio (tiempo de llegada del taxi al punto de recogida + tiempo del recorrido, con margen) y libera el vehículo solo cuando se cumple — el operador puede seguir liberándolo a mano en cualquier momento desde el estado del vehículo.</p>
+        <form method="post" class="flex flex-wrap items-end gap-3">
+          <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+          <input type="hidden" name="accion" value="guardar_ubicacion">
+          <input type="hidden" name="pais" value="<?= htmlspecialchars((string) ($empresaUbicacion['pais'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+          <input type="hidden" name="departamento" value="<?= htmlspecialchars((string) ($empresaUbicacion['departamento'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+          <input type="hidden" name="ciudad" value="<?= htmlspecialchars((string) ($empresaUbicacion['ciudad'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+          <div>
+            <label for="ub_tiempo_llegada" class="block text-sm text-slate-400 mb-2">Tiempo de llegada del taxi (min)</label>
+            <input id="ub_tiempo_llegada" name="tiempo_llegada_taxi_min" type="number" min="1" max="60" placeholder="10" value="<?= htmlspecialchars((string) ($empresaUbicacion['tiempo_llegada_taxi_min'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-40">
+          </div>
+          <div>
+            <label for="ub_velocidad" class="block text-sm text-slate-400 mb-2">Velocidad promedio (km/h)</label>
+            <input id="ub_velocidad" name="velocidad_promedio_kmh" type="number" min="1" max="120" placeholder="25" value="<?= htmlspecialchars((string) ($empresaUbicacion['velocidad_promedio_kmh'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-40">
+          </div>
+          <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
+        </form>
+      </div>
     </section>
   </main>
 

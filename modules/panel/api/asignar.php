@@ -7,6 +7,7 @@ require __DIR__ . '/_bootstrap.php';
 use TaxiApp\Core\Auth;
 use TaxiApp\Core\Database;
 use TaxiApp\Core\Notificaciones;
+use TaxiApp\Domain\EstimadorLiberacion;
 
 Auth::verificarCsrf();
 
@@ -66,11 +67,21 @@ $whatsappConductor = $conductor !== false ? (string) ($conductor['whatsapp'] ?? 
 // aceptada de una vez (medio=RADIO).
 $usaConfirmacionWhatsapp = $whatsappConductor !== '';
 
+$minutosEstimados = EstimadorLiberacion::minutosEstimados(
+    $pdo,
+    $empresaId,
+    $carrera['recogida_lat'] !== null ? (float) $carrera['recogida_lat'] : null,
+    $carrera['recogida_lng'] !== null ? (float) $carrera['recogida_lng'] : null,
+    $carrera['destino_lat'] !== null ? (float) $carrera['destino_lat'] : null,
+    $carrera['destino_lng'] !== null ? (float) $carrera['destino_lng'] : null
+);
+
 $pdo->beginTransaction();
 try {
     $pdo->prepare(
-        'UPDATE tx_carreras SET estado = "ASIGNADA", vehiculo_id = :vehiculo, conductor_id = :conductor, asignada_en = NOW() WHERE id = :id'
-    )->execute(['vehiculo' => $vehiculoId, 'conductor' => $conductorId, 'id' => $carreraId]);
+        'UPDATE tx_carreras SET estado = "ASIGNADA", vehiculo_id = :vehiculo, conductor_id = :conductor, asignada_en = NOW(),
+                estimado_liberacion_en = DATE_ADD(NOW(), INTERVAL :minutos MINUTE) WHERE id = :id'
+    )->execute(['vehiculo' => $vehiculoId, 'conductor' => $conductorId, 'minutos' => $minutosEstimados, 'id' => $carreraId]);
 
     $pdo->prepare('UPDATE tx_vehiculos SET estado_vehiculo = "SOLICITADO" WHERE id = :id')
         ->execute(['id' => $vehiculoId]);

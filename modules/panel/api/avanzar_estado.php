@@ -55,6 +55,13 @@ try {
     if ($estadoDestino === 'FINALIZADA') {
         $pdo->prepare('UPDATE tx_carreras SET estado = :estado, finalizada_en = NOW() WHERE id = :id')
             ->execute(['estado' => $estadoDestino, 'id' => $carreraId]);
+
+        // Si el temporizador automático no llegó a liberar el vehículo antes,
+        // esta finalización manual cuenta como la liberación.
+        $pdo->prepare(
+            "UPDATE tx_carreras SET vehiculo_liberado_en = NOW(), vehiculo_liberado_por = 'MANUAL'
+             WHERE id = :id AND vehiculo_liberado_en IS NULL"
+        )->execute(['id' => $carreraId]);
     } else {
         $pdo->prepare('UPDATE tx_carreras SET estado = :estado WHERE id = :id')
             ->execute(['estado' => $estadoDestino, 'id' => $carreraId]);
