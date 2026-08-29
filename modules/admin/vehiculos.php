@@ -63,64 +63,64 @@ $activo = 'vehiculos';
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vehículos · Administración · <?= htmlspecialchars($usuarioActual['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></title>
-<script src="https://cdn.tailwindcss.com"></script>
+<?php require __DIR__ . '/../_tema.php'; ?>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-background text-foreground min-h-screen">
   <?php require __DIR__ . '/_nav.php'; ?>
 
   <main class="p-6 max-w-3xl mx-auto space-y-6">
     <?php if ($error !== null): ?>
-      <p class="bg-red-900/50 text-red-200 text-sm rounded p-3"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+      <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-3 py-2" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
 
-    <section class="bg-slate-800 rounded-lg p-4">
+    <section class="bg-card border border-border rounded-xl p-4">
       <h2 class="font-semibold mb-3">Nuevo vehículo</h2>
       <form method="post" class="flex flex-wrap gap-2 items-end">
         <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
         <input type="hidden" name="accion" value="crear">
         <div>
-          <label for="v_crear_numero" class="block text-xs text-slate-400 mb-1">Número interno</label>
-          <input id="v_crear_numero" name="numero_interno" required class="rounded bg-slate-700 text-white px-3 py-2 text-sm w-28">
+          <label for="v_crear_numero" class="block text-xs text-slate-400 mb-1.5">Número interno</label>
+          <input id="v_crear_numero" name="numero_interno" required class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm w-28">
         </div>
         <div>
-          <label for="v_crear_placa" class="block text-xs text-slate-400 mb-1">Placa</label>
-          <input id="v_crear_placa" name="placa" required class="rounded bg-slate-700 text-white px-3 py-2 text-sm w-28">
+          <label for="v_crear_placa" class="block text-xs text-slate-400 mb-1.5">Placa</label>
+          <input id="v_crear_placa" name="placa" required class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm w-28 font-mono">
         </div>
         <div>
-          <label for="v_crear_tipo" class="block text-xs text-slate-400 mb-1">Tipo de servicio</label>
-          <input id="v_crear_tipo" name="tipo" value="TAXI" required class="rounded bg-slate-700 text-white px-3 py-2 text-sm w-32">
+          <label for="v_crear_tipo" class="block text-xs text-slate-400 mb-1.5">Tipo de servicio</label>
+          <input id="v_crear_tipo" name="tipo" value="TAXI" required class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm w-32">
         </div>
-        <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded px-4 py-2">Crear</button>
+        <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-sm font-medium rounded-lg px-4 py-2">Crear</button>
       </form>
     </section>
 
     <section class="space-y-2">
-      <h2 class="font-semibold text-slate-200">Flota (<?= count($vehiculos) ?>)</h2>
+      <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide">Flota (<?= count($vehiculos) ?>)</h2>
       <?php if ($vehiculos === []): ?>
         <p class="text-slate-500 text-sm">Todavía no hay vehículos registrados.</p>
       <?php endif; ?>
       <?php foreach ($vehiculos as $v): ?>
-        <form method="post" class="bg-slate-800 rounded-lg p-3 flex flex-wrap gap-2 items-end">
+        <form method="post" class="bg-card border border-border rounded-xl p-3 flex flex-wrap gap-2 items-end">
           <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
           <input type="hidden" name="accion" value="editar">
           <input type="hidden" name="id" value="<?= (int) $v['id'] ?>">
           <div>
-            <label for="v_<?= (int) $v['id'] ?>_numero" class="block text-xs text-slate-400 mb-1">Número interno</label>
-            <input id="v_<?= (int) $v['id'] ?>_numero" name="numero_interno" value="<?= htmlspecialchars($v['numero_interno'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded bg-slate-700 text-white px-3 py-2 text-sm w-24">
+            <label for="v_<?= (int) $v['id'] ?>_numero" class="block text-xs text-slate-400 mb-1.5">Número interno</label>
+            <input id="v_<?= (int) $v['id'] ?>_numero" name="numero_interno" value="<?= htmlspecialchars($v['numero_interno'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm w-24">
           </div>
           <div>
-            <label for="v_<?= (int) $v['id'] ?>_placa" class="block text-xs text-slate-400 mb-1">Placa</label>
-            <input id="v_<?= (int) $v['id'] ?>_placa" name="placa" value="<?= htmlspecialchars($v['placa'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded bg-slate-700 text-white px-3 py-2 text-sm w-24">
+            <label for="v_<?= (int) $v['id'] ?>_placa" class="block text-xs text-slate-400 mb-1.5">Placa</label>
+            <input id="v_<?= (int) $v['id'] ?>_placa" name="placa" value="<?= htmlspecialchars($v['placa'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm w-24 font-mono">
           </div>
           <div>
-            <label for="v_<?= (int) $v['id'] ?>_tipo" class="block text-xs text-slate-400 mb-1">Tipo</label>
-            <input id="v_<?= (int) $v['id'] ?>_tipo" name="tipo" value="<?= htmlspecialchars($v['tipo'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded bg-slate-700 text-white px-3 py-2 text-sm w-28">
+            <label for="v_<?= (int) $v['id'] ?>_tipo" class="block text-xs text-slate-400 mb-1.5">Tipo</label>
+            <input id="v_<?= (int) $v['id'] ?>_tipo" name="tipo" value="<?= htmlspecialchars($v['tipo'], ENT_QUOTES, 'UTF-8') ?>" required class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm w-28">
           </div>
           <div class="text-xs text-slate-400 px-2 py-2">
             Estado actual: <span class="text-slate-200"><?= htmlspecialchars($v['estado_vehiculo'], ENT_QUOTES, 'UTF-8') ?></span>
             <span class="text-slate-600">(se cambia desde el Centro de transmisión)</span>
           </div>
-          <button type="submit" class="bg-slate-700 hover:bg-slate-600 text-white text-sm rounded px-3 py-2">Guardar</button>
+          <button type="submit" class="bg-muted hover:bg-secondary text-slate-100 text-sm font-medium rounded-lg px-3.5 py-2">Guardar</button>
         </form>
       <?php endforeach; ?>
     </section>

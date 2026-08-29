@@ -77,3 +77,12 @@ Todo esto probado en navegador real y/o con payloads de webhook reales, no solo 
 ## Qué NO bloquea nada ahora mismo
 
 Todo el código de Fase 1 (webhook, conexión del motor, panel de configuración) está construido, probado hasta donde se puede sin credenciales reales, y commiteado. Lo único que falta es infraestructura externa (una clave de API, una instancia de Evolution) — no hay ninguna decisión de diseño pendiente ni ninguna pieza a medio escribir.
+
+## Sistema de diseño premium aplicado (esta sesión, tras cerrar Fases 0-3)
+
+El usuario pidió, vía la skill `ui-ux-pro-max`, elevar el panel (hasta ahora funcional pero con Tailwind por defecto) a un diseño premium coherente. Se generó un design system ("Dark tech + status green", estilo Glassmorphism, tipografía Fira Sans/Fira Code) y se aplicó a **todas** las pantallas:
+
+- `modules/_tema.php` (nuevo): partial compartido con el `tailwind.config` runtime (tokens: `background`/`card`/`primary`/`secondary`/`accent`/`muted`/`border`/`destructive`/`warning`), fuentes Google Fonts, `:focus-visible` (no `:focus`) para anillos de foco solo por teclado, y `prefers-reduced-motion`.
+- Reescritas con el nuevo tema: `modules/panel/login.php`, `modules/panel/index.php`, `modules/panel/assets/panel.js` (los indicadores de estado en emoji se reemplazaron por puntos de color e íconos SVG inline — `insigniaEstado()`, `iconoPin()`, `iconoBandera()`), `modules/admin/_nav.php`, `modules/admin/vehiculos.php`, `modules/admin/conductores.php`, `modules/admin/whatsapp.php`, `modules/admin/reportes.php`, `modules/plataforma/empresas.php`.
+- Verificado: `php -l` en los 9 archivos PHP tocados, `node --check` en `panel.js`, las dos suites de pruebas (`packages/whatsapp-engine/tests/prueba.php` 55/55, `tests/prueba.php` todo verde — el cambio es solo visual, cero lógica de servidor tocada), y las 6 pantallas abiertas en navegador real (Playwright) con dos usuarios de prueba desechables (creados y luego borrados de `tx_usuarios`) — cero errores de consola reales (solo el warning esperado de Tailwind CDN y un aviso benigno de "múltiples `<form>`" en `whatsapp.php`).
+- Es un cambio puramente visual/CSS — no toca ninguna lógica de negocio, ruta ni contrato con el motor.

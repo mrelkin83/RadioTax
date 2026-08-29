@@ -4,14 +4,31 @@
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const POLL_MS = 4000;
 
+  // Colores de estado: un punto real (.punto-estado, ver _tema.php), nunca un
+  // emoji como icono — un emoji no es un componente de UI consistente entre
+  // sistemas operativos ni tiene contraste garantizado.
   const ESTADOS_VEHICULO = {
-    DISPONIBLE: { emoji: '🟢', texto: 'Disponible' },
-    EN_TURNO: { emoji: '🟢', texto: 'En turno' },
-    SOLICITADO: { emoji: '🟡', texto: 'Solicitado' },
-    PENDIENTE_CONFIRMACION: { emoji: '🟡', texto: 'Pendiente confirmación' },
-    EN_SERVICIO: { emoji: '🔵', texto: 'En servicio' },
-    FUERA_DE_TURNO: { emoji: '⚪', texto: 'Fuera de turno' },
-    NO_DISPONIBLE: { emoji: '🔴', texto: 'No disponible' },
+    DISPONIBLE: { color: '#22C55E', texto: 'Disponible' },
+    EN_TURNO: { color: '#22C55E', texto: 'En turno' },
+    SOLICITADO: { color: '#F59E0B', texto: 'Solicitado' },
+    PENDIENTE_CONFIRMACION: { color: '#F59E0B', texto: 'Pendiente confirmación' },
+    EN_SERVICIO: { color: '#38BDF8', texto: 'En servicio' },
+    FUERA_DE_TURNO: { color: '#64748B', texto: 'Fuera de turno' },
+    NO_DISPONIBLE: { color: '#EF4444', texto: 'No disponible' },
+  };
+
+  const ESTADOS_CARRERA = {
+    RECIBIDA: { color: '#94A3B8', texto: 'Recibida' },
+    DATOS_COMPLETOS: { color: '#94A3B8', texto: 'Datos completos' },
+    EN_DESPACHO: { color: '#F59E0B', texto: 'En despacho' },
+    CANDIDATOS_PROPUESTOS: { color: '#F59E0B', texto: 'Candidatos propuestos' },
+    ASIGNADA: { color: '#F59E0B', texto: 'Asignada' },
+    ACEPTADA: { color: '#F59E0B', texto: 'Aceptada' },
+    EN_CAMINO: { color: '#F59E0B', texto: 'En camino' },
+    EN_SERVICIO: { color: '#38BDF8', texto: 'En servicio' },
+    FINALIZADA: { color: '#22C55E', texto: 'Finalizada' },
+    CANCELADA: { color: '#EF4444', texto: 'Cancelada' },
+    NO_ATENDIDA: { color: '#EF4444', texto: 'No atendida' },
   };
 
   function el(tag, opts = {}) {
@@ -24,6 +41,50 @@
       }
     }
     return nodo;
+  }
+
+  /** Punto de color + texto, en vez de un emoji como indicador de estado. */
+  function insigniaEstado(color, texto, claseTexto = 'text-xs text-slate-300') {
+    const envoltorio = el('span', { className: 'inline-flex items-center gap-1.5' });
+    const punto = el('span', { className: 'punto-estado' });
+    punto.style.background = color;
+    envoltorio.appendChild(punto);
+    envoltorio.appendChild(el('span', { className: claseTexto, text: texto }));
+    return envoltorio;
+  }
+
+  /** Icono de ubicación (recogida), inline SVG — nunca un emoji. */
+  function iconoPin() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('class', 'w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = '<path d="M12 21s-7-6.5-7-11.5a7 7 0 0 1 14 0C19 14.5 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>';
+    return svg;
+  }
+
+  /** Icono de destino (bandera), inline SVG — nunca un emoji. */
+  function iconoBandera() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('class', 'w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = '<path d="M5 21V4"/><path d="M5 4h13l-2.5 4L18 12H5"/>';
+    return svg;
+  }
+
+  /** Fila con icono + texto, para recogida/destino. */
+  function filaConIcono(icono, texto) {
+    const fila = el('div', { className: 'flex items-start gap-1.5' });
+    fila.appendChild(icono);
+    fila.appendChild(el('span', { className: 'text-slate-300 text-sm', text: texto }));
+    return fila;
   }
 
   async function api(ruta, opciones = {}) {
@@ -49,31 +110,33 @@
   let conductoresCache = [];
 
   function tarjetaCarrera(carrera) {
-    const tarjeta = el('div', { className: 'rounded-lg bg-slate-800 p-4', attrs: { 'data-carrera-id': carrera.id } });
+    const tarjeta = el('div', { className: 'rounded-xl bg-card border border-border p-4', attrs: { 'data-carrera-id': carrera.id } });
 
-    const cabecera = el('div', { className: 'flex justify-between text-xs text-slate-400 mb-1' });
-    cabecera.appendChild(el('span', { text: `#${carrera.id} · ${carrera.estado}` }));
-    cabecera.appendChild(el('span', { text: tiempoDesde(carrera.creado_en) }));
+    const cabecera = el('div', { className: 'flex justify-between items-center mb-2' });
+    const estadoInfo = ESTADOS_CARRERA[carrera.estado] || { color: '#64748B', texto: carrera.estado };
+    const insignia = insigniaEstado(estadoInfo.color, `#${carrera.id} · ${estadoInfo.texto}`, 'font-mono text-xs text-slate-400');
+    cabecera.appendChild(insignia);
+    cabecera.appendChild(el('span', { className: 'text-xs text-slate-500', text: tiempoDesde(carrera.creado_en) }));
     tarjeta.appendChild(cabecera);
 
-    tarjeta.appendChild(el('p', { className: 'text-white font-medium', text: carrera.cliente_nombre || carrera.cliente_whatsapp }));
-    tarjeta.appendChild(el('p', { className: 'text-slate-300 text-sm', text: `📍 ${carrera.recogida_texto}` }));
-    tarjeta.appendChild(el('p', { className: 'text-slate-300 text-sm', text: `🎯 ${carrera.destino_texto}` }));
+    tarjeta.appendChild(el('p', { className: 'text-foreground font-medium mb-1.5', text: carrera.cliente_nombre || carrera.cliente_whatsapp }));
+    tarjeta.appendChild(filaConIcono(iconoPin(), carrera.recogida_texto));
+    tarjeta.appendChild(filaConIcono(iconoBandera(), carrera.destino_texto));
 
     if (carrera.observaciones) {
-      tarjeta.appendChild(el('p', { className: 'text-slate-500 text-xs mt-1', text: carrera.observaciones }));
+      tarjeta.appendChild(el('p', { className: 'text-slate-500 text-xs mt-1.5', text: carrera.observaciones }));
     }
 
     const acciones = el('div', { className: 'mt-3 flex flex-wrap items-center gap-2' });
 
     const asignable = !['ASIGNADA', 'ACEPTADA', 'EN_CAMINO', 'EN_SERVICIO'].includes(carrera.estado);
     if (asignable) {
-      const select = el('select', { className: 'bg-slate-700 text-white text-sm rounded px-2 py-1' });
+      const select = el('select', { className: 'bg-muted border border-border text-foreground text-sm rounded-lg px-2 py-1.5' });
       select.appendChild(el('option', { text: 'Vehículo…', attrs: { value: '' } }));
       for (const v of vehiculosDisponiblesCache) {
         select.appendChild(el('option', { text: `${v.numero_interno} · ${v.placa}`, attrs: { value: v.id } }));
       }
-      const btnAsignar = el('button', { className: 'text-sm bg-sky-600 hover:bg-sky-500 text-white px-2 py-1 rounded', text: 'Asignar' });
+      const btnAsignar = el('button', { className: 'text-sm font-medium bg-accent hover:bg-accent-hover text-on-accent px-3 py-1.5 rounded-lg', text: 'Asignar' });
       btnAsignar.addEventListener('click', async () => {
         if (!select.value) return;
         btnAsignar.disabled = true;
@@ -93,7 +156,7 @@
     const etiquetasTransicion = { EN_CAMINO: 'En camino', EN_SERVICIO: 'En servicio', FINALIZADA: 'Finalizar' };
     const destino = transicionesCarrera[carrera.estado];
     if (destino) {
-      const btnAvanzar = el('button', { className: 'text-sm bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded', text: etiquetasTransicion[destino] });
+      const btnAvanzar = el('button', { className: 'text-sm font-medium bg-accent hover:bg-accent-hover text-on-accent px-3 py-1.5 rounded-lg', text: etiquetasTransicion[destino] });
       btnAvanzar.addEventListener('click', async () => {
         btnAvanzar.disabled = true;
         try {
@@ -110,8 +173,8 @@
     // Una carrera con el cliente ya a bordo (EN_SERVICIO) no se cancela: de
     // ahí solo se sale finalizándola (regla del ciclo, §6 del system prompt maestro).
     if (carrera.estado !== 'EN_SERVICIO') {
-      const inputMotivo = el('input', { className: 'bg-slate-700 text-white text-sm rounded px-2 py-1 w-32', attrs: { placeholder: 'Motivo' } });
-      const btnCancelar = el('button', { className: 'text-sm bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded', text: 'Cancelar' });
+      const inputMotivo = el('input', { className: 'bg-muted border border-border text-foreground placeholder:text-slate-500 text-sm rounded-lg px-2.5 py-1.5 w-32', attrs: { placeholder: 'Motivo' } });
+      const btnCancelar = el('button', { className: 'text-sm font-medium bg-destructive/15 hover:bg-destructive/25 text-red-300 px-3 py-1.5 rounded-lg', text: 'Cancelar' });
       btnCancelar.addEventListener('click', async () => {
         if (!inputMotivo.value.trim()) {
           inputMotivo.focus();
@@ -135,27 +198,33 @@
   }
 
   function filaFinalizada(carrera) {
-    const fila = el('div', { className: 'flex justify-between text-sm bg-slate-900 rounded px-3 py-2' });
-    fila.appendChild(el('span', { text: `#${carrera.id} · ${carrera.cliente_nombre || carrera.cliente_whatsapp}` }));
-    fila.appendChild(el('span', { className: 'text-slate-400', text: carrera.estado }));
+    const estadoInfo = ESTADOS_CARRERA[carrera.estado] || { color: '#64748B', texto: carrera.estado };
+    const fila = el('div', { className: 'flex justify-between items-center text-sm bg-card/60 border border-border rounded-lg px-3 py-2' });
+    fila.appendChild(el('span', { className: 'font-mono text-slate-300', text: `#${carrera.id} · ${carrera.cliente_nombre || carrera.cliente_whatsapp}` }));
+    fila.appendChild(insigniaEstado(estadoInfo.color, estadoInfo.texto));
     return fila;
   }
 
   function tarjetaVehiculo(v) {
-    const info = ESTADOS_VEHICULO[v.estado_vehiculo] || { emoji: '❔', texto: v.estado_vehiculo };
-    const tarjeta = el('div', { className: 'rounded-lg bg-slate-800 p-3' });
+    const info = ESTADOS_VEHICULO[v.estado_vehiculo] || { color: '#64748B', texto: v.estado_vehiculo };
+    const tarjeta = el('div', { className: 'rounded-xl bg-card border border-border p-3' });
 
     const cabecera = el('div', { className: 'flex justify-between items-center' });
-    cabecera.appendChild(el('span', { className: 'text-white font-medium', text: `${info.emoji} ${v.numero_interno} · ${v.placa}` }));
+    const punto = el('span', { className: 'punto-estado' });
+    punto.style.background = info.color;
+    const nombreVehiculo = el('span', { className: 'inline-flex items-center gap-1.5 text-foreground font-medium font-mono text-sm' });
+    nombreVehiculo.appendChild(punto);
+    nombreVehiculo.appendChild(document.createTextNode(`${v.numero_interno} · ${v.placa}`));
+    cabecera.appendChild(nombreVehiculo);
     cabecera.appendChild(el('span', { className: 'text-xs text-slate-400', text: info.texto }));
     tarjeta.appendChild(cabecera);
 
-    tarjeta.appendChild(el('p', { className: 'text-slate-400 text-xs mt-1', text: v.conductor_nombre ? `Conductor: ${v.conductor_nombre}` : 'Sin conductor asignado' }));
+    tarjeta.appendChild(el('p', { className: 'text-slate-500 text-xs mt-1', text: v.conductor_nombre ? `Conductor: ${v.conductor_nombre}` : 'Sin conductor asignado' }));
 
-    const acciones = el('div', { className: 'mt-2 flex flex-wrap items-center gap-2' });
+    const acciones = el('div', { className: 'mt-2.5 flex flex-wrap items-center gap-2' });
 
     if (v.turno_id) {
-      const btnCerrar = el('button', { className: 'text-xs bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded', text: 'Cerrar turno' });
+      const btnCerrar = el('button', { className: 'text-xs font-medium bg-muted hover:bg-secondary text-slate-200 px-2.5 py-1.5 rounded-lg', text: 'Cerrar turno' });
       btnCerrar.addEventListener('click', async () => {
         btnCerrar.disabled = true;
         try {
@@ -168,12 +237,12 @@
       });
       acciones.appendChild(btnCerrar);
     } else {
-      const select = el('select', { className: 'bg-slate-700 text-white text-xs rounded px-2 py-1' });
+      const select = el('select', { className: 'bg-muted border border-border text-foreground text-xs rounded-lg px-2 py-1.5' });
       select.appendChild(el('option', { text: 'Conductor…', attrs: { value: '' } }));
       for (const c of conductoresCache) {
         select.appendChild(el('option', { text: c.nombre, attrs: { value: c.id } }));
       }
-      const btnAbrir = el('button', { className: 'text-xs bg-emerald-700 hover:bg-emerald-600 text-white px-2 py-1 rounded', text: 'Abrir turno' });
+      const btnAbrir = el('button', { className: 'text-xs font-medium bg-accent hover:bg-accent-hover text-on-accent px-2.5 py-1.5 rounded-lg', text: 'Abrir turno' });
       btnAbrir.addEventListener('click', async () => {
         if (!select.value) return;
         btnAbrir.disabled = true;
@@ -189,7 +258,7 @@
       acciones.appendChild(btnAbrir);
     }
 
-    const selectEstado = el('select', { className: 'bg-slate-700 text-white text-xs rounded px-2 py-1' });
+    const selectEstado = el('select', { className: 'bg-muted border border-border text-foreground text-xs rounded-lg px-2 py-1.5' });
     for (const clave of Object.keys(ESTADOS_VEHICULO)) {
       const opt = el('option', { text: ESTADOS_VEHICULO[clave].texto, attrs: { value: clave } });
       if (clave === v.estado_vehiculo) opt.selected = true;
@@ -219,11 +288,11 @@
   }
 
   function tarjetaConversacion(conv) {
-    const tarjeta = el('div', { className: 'rounded-lg bg-slate-800 p-3' });
+    const tarjeta = el('div', { className: 'rounded-xl bg-card border border-border p-3' });
 
     const cabecera = el('div', { className: 'flex justify-between items-start' });
-    cabecera.appendChild(el('span', { className: 'text-white font-medium text-sm', text: conv.nombre_contacto || conv.telefono }));
-    cabecera.appendChild(el('span', { className: 'text-xs text-slate-500', text: conv.estado === 'IA_PAUSADA' ? 'Pausada' : 'Con humano' }));
+    cabecera.appendChild(el('span', { className: 'text-foreground font-medium text-sm', text: conv.nombre_contacto || conv.telefono }));
+    cabecera.appendChild(insigniaEstado('#F59E0B', conv.estado === 'IA_PAUSADA' ? 'Pausada' : 'Con humano', 'text-xs text-slate-500'));
     tarjeta.appendChild(cabecera);
 
     if (conv.ultimo_mensaje) {
@@ -233,10 +302,10 @@
       tarjeta.appendChild(el('p', { className: 'text-slate-500 text-xs mt-1', text: `Atendida por: ${conv.atendida_por_nombre}` }));
     }
 
-    const caja = el('textarea', { className: 'w-full mt-2 bg-slate-700 text-white text-xs rounded px-2 py-1', attrs: { rows: '2', placeholder: 'Responder por WhatsApp…' } });
+    const caja = el('textarea', { className: 'w-full mt-2 bg-muted border border-border text-foreground placeholder:text-slate-500 text-xs rounded-lg px-2.5 py-1.5', attrs: { rows: '2', placeholder: 'Responder por WhatsApp…' } });
     const acciones = el('div', { className: 'mt-2 flex gap-2' });
 
-    const btnEnviar = el('button', { className: 'text-xs bg-sky-600 hover:bg-sky-500 text-white px-2 py-1 rounded', text: 'Enviar' });
+    const btnEnviar = el('button', { className: 'text-xs font-medium bg-accent hover:bg-accent-hover text-on-accent px-2.5 py-1.5 rounded-lg', text: 'Enviar' });
     btnEnviar.addEventListener('click', async () => {
       if (!caja.value.trim()) return;
       btnEnviar.disabled = true;
@@ -249,7 +318,7 @@
       }
     });
 
-    const btnLiberar = el('button', { className: 'text-xs bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded', text: 'Devolver a la IA' });
+    const btnLiberar = el('button', { className: 'text-xs font-medium bg-muted hover:bg-secondary text-slate-200 px-2.5 py-1.5 rounded-lg', text: 'Devolver a la IA' });
     btnLiberar.addEventListener('click', async () => {
       btnLiberar.disabled = true;
       try {
