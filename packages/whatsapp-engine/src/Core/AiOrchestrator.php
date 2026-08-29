@@ -220,7 +220,7 @@ class AiOrchestrator
     /** Envía la respuesta por WhatsApp y la deja guardada. */
     private function responder(array $conv, string $texto, array $uso): string
     {
-        $texto = trim($texto);
+        $texto = trim(self::markdownAWhatsapp($texto));
         if ($texto === '') return '';
 
         // WhatsApp corta los mensajes muy largos; además, un muro de texto en el
@@ -245,6 +245,29 @@ class AiOrchestrator
                     'tokens_in' => 0, 'tokens_out' => 0, 'latencia' => 0];
         }
         $this->conv->tocar((int)$conv['id']);
+        return $texto;
+    }
+
+    /**
+     * El modelo escribe en Markdown estándar por costumbre (negrita con **,
+     * encabezados con #, enlaces [texto](url)...), pero WhatsApp tiene su
+     * propia sintaxis, distinta: negrita es *una* asterisco, no dos. Sin este
+     * paso, el cliente ve literalmente los dos asteriscos en el mensaje —
+     * bug real reportado, no algo hipotético. Es un parche defensivo, no
+     * confía en que el prompt baste: los modelos no siempre obedecen esa
+     * instrucción al pie de la letra.
+     */
+    private static function markdownAWhatsapp(string $texto): string
+    {
+        // Negrita: **texto** o __texto__ (ambas formas de Markdown) -> *texto*
+        $texto = preg_replace('/\*\*(.+?)\*\*/s', '*$1*', $texto);
+        $texto = preg_replace('/__(.+?)__/s', '*$1*', $texto);
+        // Encabezados Markdown (#, ##, ...) no existen en WhatsApp: se quita
+        // el símbolo y se deja el texto en negrita para que siga resaltando.
+        $texto = preg_replace('/^#{1,6}\s+(.+)$/m', '*$1*', $texto);
+        // Enlaces [texto](url): WhatsApp no renderiza el markdown, pero sí
+        // autoenlaza una URL suelta — se deja el texto y la URL visibles.
+        $texto = preg_replace('/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/', '$1: $2', $texto);
         return $texto;
     }
 

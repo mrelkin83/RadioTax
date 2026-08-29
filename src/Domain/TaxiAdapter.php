@@ -450,6 +450,12 @@ final class TaxiAdapter implements
                 'description' => 'Direcciones guardadas del cliente de esta conversación (casa, trabajo...). Úsala antes de preguntar la dirección: si el cliente tiene una guardada, confírmasela en vez de pedírsela de nuevo.',
                 'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
             ],
+            'guardar_nombre_cliente' => [
+                'description' => 'Guarda el nombre del cliente apenas te lo diga, para poder llamarlo por su nombre de ahora en más — no hace falta confirmárselo, solo guardarlo y seguir la conversación.',
+                'parameters' => ['type' => 'object', 'properties' => [
+                    'nombre' => ['type' => 'string', 'description' => 'El nombre (o como quiera que le digan) que acaba de dar el cliente.'],
+                ], 'required' => ['nombre']],
+            ],
             'registrar_solicitud' => [
                 'description' => 'Crea la solicitud de servicio (la carrera) con los datos que ya confirmó el cliente. Llámala solo cuando tengas tipo de servicio, recogida y destino — nunca inventes ninguno.',
                 'parameters' => ['type' => 'object', 'properties' => [
@@ -486,11 +492,29 @@ final class TaxiAdapter implements
                 'ok' => true,
                 'direcciones' => $this->listar($this->resolverClienteId($conversacion)),
             ],
+            'guardar_nombre_cliente' => $this->herramientaGuardarNombreCliente($conversacion, $args),
             'registrar_solicitud' => $this->herramientaRegistrarSolicitud($conversacion, $args),
             'consultar_estado_carrera' => $this->herramientaConsultarEstadoCarrera($conversacion, $args),
             'cancelar_carrera' => $this->herramientaCancelarCarrera($conversacion, $args),
             default => null,
         };
+    }
+
+    private function herramientaGuardarNombreCliente(array $conversacion, array $args): array
+    {
+        $nombre = trim((string) ($args['nombre'] ?? ''));
+        if ($nombre === '') {
+            return ['ok' => false, 'error' => 'Falta el nombre.'];
+        }
+        // VARCHAR(120) en tx_clientes.nombre: se recorta en vez de fallar la
+        // consulta si el modelo manda algo absurdamente largo.
+        $nombre = mb_substr($nombre, 0, 120);
+
+        $clienteId = $this->resolverClienteId($conversacion);
+        $this->conexion()->prepare('UPDATE tx_clientes SET nombre = :nombre WHERE id = :id')
+            ->execute(['nombre' => $nombre, 'id' => $clienteId]);
+
+        return ['ok' => true];
     }
 
     private function herramientaRegistrarSolicitud(array $conversacion, array $args): array

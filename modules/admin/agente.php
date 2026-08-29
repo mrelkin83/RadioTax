@@ -8,38 +8,75 @@ use ElkinLinan\WhatsappAiEngine\Core\AgentManager;
 use ElkinLinan\WhatsappAiEngine\Engine;
 use TaxiApp\Core\Auth;
 use TaxiApp\Core\ConectorMotor;
+use TaxiApp\Core\Database;
 
 $empresaId = $usuarioActual['empresa_id'];
 $error = null;
+$guardadoSeccion = null;
 
 ConectorMotor::conectar($empresaId);
 $db = Engine::db();
 $gestor = new AgentManager($db);
+$pdo = Database::conexion();
+
+// Colombia y Venezuela por ahora — se amplía si el negocio opera en otro país.
+$departamentosPorPais = [
+    'Colombia' => ['Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bogotá D.C.', 'Bolívar', 'Boyacá', 'Caldas', 'Caquetá', 'Casanare', 'Cauca', 'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca', 'Guainía', 'Guaviare', 'Huila', 'La Guajira', 'Magdalena', 'Meta', 'Nariño', 'Norte de Santander', 'Putumayo', 'Quindío', 'Risaralda', 'San Andrés y Providencia', 'Santander', 'Sucre', 'Tolima', 'Valle del Cauca', 'Vaupés', 'Vichada'],
+    'Venezuela' => ['Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 'Bolívar', 'Carabobo', 'Cojedes', 'Delta Amacuro', 'Distrito Capital', 'Falcón', 'Guárico', 'La Guaira', 'Lara', 'Mérida', 'Miranda', 'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira', 'Trujillo', 'Yaracuy', 'Zulia'],
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Auth::csrfValido()) {
     $error = 'Token de seguridad inválido o expirado. Recarga la página e inténtalo de nuevo.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $genero = (string) ($_POST['genero'] ?? 'femenino');
-    $genero = in_array($genero, ['femenino', 'masculino'], true) ? $genero : 'femenino';
+    $accion = (string) ($_POST['accion'] ?? 'guardar_agente');
 
-    $gestor->guardar([
-        'nombre' => trim((string) ($_POST['nombre'] ?? '')),
-        'rol' => trim((string) ($_POST['rol'] ?? '')),
-        'objetivo' => trim((string) ($_POST['objetivo'] ?? '')),
-        'personalidad' => trim((string) ($_POST['personalidad'] ?? '')),
-        'genero' => $genero,
-        'idioma' => trim((string) ($_POST['idioma'] ?? '')) ?: 'es',
-        'instrucciones' => trim((string) ($_POST['instrucciones'] ?? '')),
-        'saludo_inicial' => trim((string) ($_POST['saludo_inicial'] ?? '')),
-        'mensaje_fuera_horario' => trim((string) ($_POST['mensaje_fuera_horario'] ?? '')),
-        'mensaje_error' => trim((string) ($_POST['mensaje_error'] ?? '')),
-        'activo' => isset($_POST['activo']) ? 1 : 0,
-    ]);
-    header('Location: /modules/admin/agente.php?guardado=1');
-    exit;
+    if ($accion === 'guardar_ubicacion') {
+        $pais = trim((string) ($_POST['pais'] ?? ''));
+        $departamento = trim((string) ($_POST['departamento'] ?? ''));
+        $ciudad = trim((string) ($_POST['ciudad'] ?? ''));
+        if ($pais !== '' && !isset($departamentosPorPais[$pais])) {
+            $pais = '';
+        }
+        if ($ciudad === '') {
+            $error = 'La ciudad es obligatoria.';
+        } else {
+            $pdo->prepare('UPDATE tx_empresas SET pais = :pais, departamento = :departamento, ciudad = :ciudad WHERE id = :id')
+                ->execute(['pais' => $pais ?: null, 'departamento' => $departamento ?: null, 'ciudad' => $ciudad, 'id' => $empresaId]);
+            header('Location: /modules/admin/agente.php?guardado=ubicacion');
+            exit;
+        }
+    } else {
+        $genero = (string) ($_POST['genero'] ?? 'femenino');
+        $genero = in_array($genero, ['femenino', 'masculino'], true) ? $genero : 'femenino';
+
+        $gestor->guardar([
+            'nombre' => trim((string) ($_POST['nombre'] ?? '')),
+            'rol' => trim((string) ($_POST['rol'] ?? '')),
+            'objetivo' => trim((string) ($_POST['objetivo'] ?? '')),
+            'personalidad' => trim((string) ($_POST['personalidad'] ?? '')),
+            'genero' => $genero,
+            'idioma' => trim((string) ($_POST['idioma'] ?? '')) ?: 'es',
+            'instrucciones' => trim((string) ($_POST['instrucciones'] ?? '')),
+            'saludo_inicial' => trim((string) ($_POST['saludo_inicial'] ?? '')),
+            'mensaje_fuera_horario' => trim((string) ($_POST['mensaje_fuera_horario'] ?? '')),
+            'mensaje_error' => trim((string) ($_POST['mensaje_error'] ?? '')),
+            'activo' => isset($_POST['activo']) ? 1 : 0,
+        ]);
+        header('Location: /modules/admin/agente.php?guardado=agente');
+        exit;
+    }
 }
 
 $agente = $gestor->activo();
+
+$sentenciaEmpresa = $pdo->prepare('SELECT pais, departamento, ciudad FROM tx_empresas WHERE id = :id LIMIT 1');
+$sentenciaEmpresa->execute(['id' => $empresaId]);
+$empresaUbicacion = $sentenciaEmpresa->fetch() ?: ['pais' => '', 'departamento' => '', 'ciudad' => ''];
+
+if (isset($_GET['guardado'])) {
+    $guardadoSeccion = (string) $_GET['guardado'];
+}
+
 $csrf = Auth::tokenCsrf();
 $activo = 'agente';
 ?>
@@ -58,8 +95,10 @@ $activo = 'agente';
     <?php if ($error !== null): ?>
       <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-base rounded-lg px-4 py-3" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
-    <?php if (isset($_GET['guardado'])): ?>
+    <?php if ($guardadoSeccion === 'agente'): ?>
       <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-base rounded-lg px-4 py-3">Agente actualizado.</p>
+    <?php elseif ($guardadoSeccion === 'ubicacion'): ?>
+      <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-base rounded-lg px-4 py-3">Ubicación guardada.</p>
     <?php endif; ?>
 
     <p class="text-sm text-neutral-700 -mt-2">
@@ -69,6 +108,7 @@ $activo = 'agente';
 
     <form method="post" class="bg-card border border-border rounded-xl p-6 space-y-6">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+      <input type="hidden" name="accion" value="guardar_agente">
 
       <label class="flex items-center gap-3 text-base">
         <input type="checkbox" name="activo" <?= !empty($agente['activo']) ? 'checked' : '' ?> class="accent-accent w-5 h-5">
@@ -140,6 +180,62 @@ $activo = 'agente';
 
       <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
     </form>
+
+    <section class="bg-card border border-border rounded-xl p-6">
+      <h2 class="font-semibold text-lg mb-2">Dónde opera</h2>
+      <p class="text-sm text-slate-400 mb-4">País, departamento y ciudad donde presta servicio esta empresa.</p>
+      <form method="post" class="flex flex-wrap items-end gap-3">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="accion" value="guardar_ubicacion">
+        <div>
+          <label for="ub_pais" class="block text-sm text-slate-400 mb-2">País</label>
+          <select id="ub_pais" name="pais" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-44">
+            <option value="">Selecciona…</option>
+            <?php foreach (array_keys($departamentosPorPais) as $nombrePais): ?>
+              <option value="<?= htmlspecialchars($nombrePais, ENT_QUOTES, 'UTF-8') ?>" <?= ($empresaUbicacion['pais'] ?? '') === $nombrePais ? 'selected' : '' ?>><?= htmlspecialchars($nombrePais, ENT_QUOTES, 'UTF-8') ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div>
+          <label for="ub_departamento" class="block text-sm text-slate-400 mb-2">Departamento / Estado</label>
+          <select id="ub_departamento" name="departamento" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-52">
+            <option value="">Selecciona un país primero…</option>
+          </select>
+        </div>
+        <div>
+          <label for="ub_ciudad" class="block text-sm text-slate-400 mb-2">Ciudad</label>
+          <input id="ub_ciudad" name="ciudad" required value="<?= htmlspecialchars((string) ($empresaUbicacion['ciudad'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base w-48">
+        </div>
+        <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
+      </form>
+    </section>
   </main>
+
+  <script>
+  (() => {
+    const departamentosPorPais = <?= json_encode($departamentosPorPais, JSON_UNESCAPED_UNICODE) ?>;
+    const departamentoGuardado = <?= json_encode((string) ($empresaUbicacion['departamento'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+    const selPais = document.getElementById('ub_pais');
+    const selDepartamento = document.getElementById('ub_departamento');
+
+    function pintarDepartamentos(paisElegido, departamentoAMarcar) {
+      const lista = departamentosPorPais[paisElegido] || [];
+      selDepartamento.innerHTML = '';
+      if (lista.length === 0) {
+        selDepartamento.appendChild(new Option('Selecciona un país primero…', ''));
+        return;
+      }
+      selDepartamento.appendChild(new Option('Selecciona…', ''));
+      for (const d of lista) {
+        const opt = new Option(d, d);
+        if (d === departamentoAMarcar) opt.selected = true;
+        selDepartamento.appendChild(opt);
+      }
+    }
+
+    selPais.addEventListener('change', () => pintarDepartamentos(selPais.value, ''));
+    pintarDepartamentos(selPais.value, departamentoGuardado);
+  })();
+  </script>
 </body>
 </html>

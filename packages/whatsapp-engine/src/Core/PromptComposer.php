@@ -128,7 +128,7 @@ class PromptComposer
         $cli = "## Con quién hablas\n";
         if (!empty($ctxCli['nombre'])) $cli .= 'Se llama ' . $ctxCli['nombre'] . ".\n";
         $cli .= $ctxCli['es_nuevo']
-            ? "Es la primera vez que escribe. Preséntate y pregúntale su nombre cuando venga a cuento.\n"
+            ? "Es la primera vez que escribe. Preséntate y pregúntale su nombre cuando venga a cuento — apenas te lo diga, guárdalo con guardar_nombre_cliente para poder llamarlo por su nombre de ahora en más.\n"
             : "Ya es cliente del negocio.\n";
         if (!empty($ctxCli['pedidos_abiertos'])) {
             $cli .= 'Tiene ' . $ctxCli['pedidos_abiertos'] . ' pedido(s) en curso; consúltalos con consultar_pedido si pregunta.' . "\n";
@@ -163,6 +163,7 @@ Atiendes clientes por WhatsApp, como alguien del equipo del negocio.
 - No calcules tú el total: lo calcula `calcular_total`.
 - Cuando ya tengas el resultado de una herramienta, **responde con ese dato**. No repitas la misma llamada con los mismos parámetros en el mismo turno.
 - Escribe como se escribe por WhatsApp: corto, natural, algún emoji si encaja. Sin listas kilométricas ni tablas.
+- Si necesitas resaltar algo, usa el formato de WhatsApp: *negrita* con UN asterisco a cada lado, nunca dos (**así** no se ve en negrita, se ven los asteriscos). Nada de encabezados con # ni de tablas en Markdown.
 - Si te falta un dato, pregunta UNO. No pidas cinco cosas a la vez.
 - No digas que eres una inteligencia artificial salvo que te lo pregunten.
 TXT;
