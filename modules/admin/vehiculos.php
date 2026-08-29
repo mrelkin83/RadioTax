@@ -166,12 +166,16 @@ $activo = 'vehiculos';
     </section>
 
     <section class="space-y-4">
-      <h2 class="font-semibold text-base text-neutral-800 uppercase tracking-wide">Flota (<?= count($vehiculos) ?>)</h2>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-semibold text-base text-neutral-800 uppercase tracking-wide">Flota (<?= count($vehiculos) ?>)</h2>
+        <input type="search" id="buscador-vehiculos" placeholder="Buscar por número, placa, tipo o conductor…" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2 text-sm w-full sm:w-72">
+      </div>
       <?php if ($vehiculos === []): ?>
         <p class="text-neutral-700 text-base">Todavía no hay vehículos registrados.</p>
       <?php endif; ?>
+      <p id="vehiculos-sin-resultados" class="text-neutral-700 text-base hidden">Ningún vehículo coincide con la búsqueda.</p>
       <?php foreach ($vehiculos as $v): ?>
-        <div class="bg-card border border-border rounded-xl p-5 space-y-4">
+        <div class="vehiculo-fila bg-card border border-border rounded-xl p-5 space-y-4" data-buscar="<?= htmlspecialchars(mb_strtolower($v['numero_interno'] . ' ' . $v['placa'] . ' ' . $v['tipo'] . ' ' . (string) ($v['conductor_nombre'] ?? '')), ENT_QUOTES, 'UTF-8') ?>">
           <form method="post" class="flex flex-wrap gap-3 items-end">
             <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="accion" value="editar">
@@ -225,5 +229,24 @@ $activo = 'vehiculos';
       <?php endforeach; ?>
     </section>
   </main>
+
+  <script>
+  (() => {
+    const buscador = document.getElementById('buscador-vehiculos');
+    const filas = document.querySelectorAll('.vehiculo-fila');
+    const sinResultados = document.getElementById('vehiculos-sin-resultados');
+    if (!buscador) return;
+    buscador.addEventListener('input', () => {
+      const consulta = buscador.value.trim().toLowerCase();
+      let visibles = 0;
+      filas.forEach((fila) => {
+        const coincide = fila.dataset.buscar.includes(consulta);
+        fila.classList.toggle('hidden', !coincide);
+        if (coincide) visibles++;
+      });
+      if (sinResultados) sinResultados.classList.toggle('hidden', visibles !== 0 || filas.length === 0);
+    });
+  })();
+  </script>
 </body>
 </html>

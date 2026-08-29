@@ -115,12 +115,16 @@ $activo = 'conductores';
     </section>
 
     <section class="space-y-4">
-      <h2 class="font-semibold text-base text-neutral-800 uppercase tracking-wide">Conductores (<?= count($conductores) ?>)</h2>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-semibold text-base text-neutral-800 uppercase tracking-wide">Conductores (<?= count($conductores) ?>)</h2>
+        <input type="search" id="buscador-conductores" placeholder="Buscar por nombre, documento o teléfono…" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2 text-sm w-full sm:w-72">
+      </div>
       <?php if ($conductores === []): ?>
         <p class="text-neutral-700 text-base">Todavía no hay conductores registrados.</p>
       <?php endif; ?>
+      <p id="conductores-sin-resultados" class="text-neutral-700 text-base hidden">Ningún conductor coincide con la búsqueda.</p>
       <?php foreach ($conductores as $c): ?>
-        <form method="post" class="bg-card border border-border rounded-xl p-5 flex flex-wrap gap-3 items-end">
+        <form method="post" class="conductor-fila bg-card border border-border rounded-xl p-5 flex flex-wrap gap-3 items-end" data-buscar="<?= htmlspecialchars(mb_strtolower($c['nombre'] . ' ' . $c['documento'] . ' ' . $c['telefono'] . ' ' . (string) ($c['whatsapp'] ?? '')), ENT_QUOTES, 'UTF-8') ?>">
           <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
           <input type="hidden" name="accion" value="editar">
           <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
@@ -152,5 +156,24 @@ $activo = 'conductores';
       <?php endforeach; ?>
     </section>
   </main>
+
+  <script>
+  (() => {
+    const buscador = document.getElementById('buscador-conductores');
+    const filas = document.querySelectorAll('.conductor-fila');
+    const sinResultados = document.getElementById('conductores-sin-resultados');
+    if (!buscador) return;
+    buscador.addEventListener('input', () => {
+      const consulta = buscador.value.trim().toLowerCase();
+      let visibles = 0;
+      filas.forEach((fila) => {
+        const coincide = fila.dataset.buscar.includes(consulta);
+        fila.classList.toggle('hidden', !coincide);
+        if (coincide) visibles++;
+      });
+      if (sinResultados) sinResultados.classList.toggle('hidden', visibles !== 0 || filas.length === 0);
+    });
+  })();
+  </script>
 </body>
 </html>
