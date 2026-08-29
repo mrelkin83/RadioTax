@@ -3,3 +3,4 @@
 storage/media/*
 !storage/media/.gitkeep
 .playwright-cli/
+*.pem
