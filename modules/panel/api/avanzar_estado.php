@@ -20,6 +20,7 @@ $transicionesValidas = [
     'EN_CAMINO' => 'EN_SERVICIO',
     'EN_SERVICIO' => 'FINALIZADA',
 ];
+$estadosTerminales = ['FINALIZADA', 'CANCELADA', 'NO_ATENDIDA'];
 
 $datos = entrada();
 $carreraId = (int) ($datos['carrera_id'] ?? 0);
@@ -44,7 +45,13 @@ if ($carrera === false) {
     exit;
 }
 
-if (($transicionesValidas[$carrera['estado']] ?? null) !== $estadoDestino) {
+// Además del paso a paso normal, "Finalizar manualmente" permite cerrar la
+// carrera de una vez desde cualquier estado activo (§ pedido del radio-
+// operador: no obligarlo a pasar por cada paso cuando ya sabe que terminó).
+$transicionNormal = ($transicionesValidas[$carrera['estado']] ?? null) === $estadoDestino;
+$finalizacionManual = $estadoDestino === 'FINALIZADA' && !in_array($carrera['estado'], $estadosTerminales, true);
+
+if (!$transicionNormal && !$finalizacionManual) {
     http_response_code(409);
     echo json_encode(['error' => "No se puede pasar de {$carrera['estado']} a {$estadoDestino}"]);
     exit;

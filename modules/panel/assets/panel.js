@@ -172,6 +172,25 @@
       acciones.appendChild(btnAvanzar);
     }
 
+    // Cerrar la carrera directo, sin pasar por cada paso — para cuando el
+    // radiooperador ya sabe (por radio) que el servicio terminó. EN_SERVICIO
+    // ya tiene su propio botón "Finalizar" arriba, así que no se duplica acá.
+    if (carrera.estado !== 'EN_SERVICIO') {
+      const btnFinalizarManual = el('button', { className: 'text-sm font-medium bg-muted hover:bg-secondary text-slate-200 px-3 py-1.5 rounded-lg', text: 'Finalizar manualmente' });
+      btnFinalizarManual.addEventListener('click', async () => {
+        if (!confirm('¿Marcar esta carrera como finalizada? Se salta los pasos intermedios.')) return;
+        btnFinalizarManual.disabled = true;
+        try {
+          await api('/modules/panel/api/avanzar_estado.php', { method: 'POST', body: JSON.stringify({ carrera_id: carrera.id, estado: 'FINALIZADA' }) });
+          await refrescar({ forzar: true });
+        } catch (e) {
+          alert(e.message);
+          btnFinalizarManual.disabled = false;
+        }
+      });
+      acciones.appendChild(btnFinalizarManual);
+    }
+
     // Una carrera con el cliente ya a bordo (EN_SERVICIO) no se cancela: de
     // ahí solo se sale finalizándola (regla del ciclo, §6 del system prompt maestro).
     if (carrera.estado !== 'EN_SERVICIO') {
