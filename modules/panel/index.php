@@ -21,16 +21,16 @@ $csrf = Auth::tokenCsrf();
 <?php require __DIR__ . '/../_tema.php'; ?>
 </head>
 <body class="bg-background text-foreground min-h-screen">
-  <header class="border-b border-border px-6 py-4 flex items-center justify-between bg-card/90 backdrop-blur">
-    <div class="flex items-center gap-2.5">
-      <svg class="w-5 h-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <header class="border-b border-border px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 bg-card/90 backdrop-blur">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <svg class="w-5 h-5 text-yellow-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M8 17h8m-9-4h10l1.5-4.5a1 1 0 0 0-.95-1.32H6.45a1 1 0 0 0-.95 1.32L7 13Z"/>
         <circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/>
       </svg>
-      <h1 class="text-base font-semibold">Centro de transmisión <span class="text-slate-500 font-normal">· <?= htmlspecialchars($usuario['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></span></h1>
+      <h1 class="text-base font-semibold truncate">Centro de transmisión <span class="text-slate-500 font-normal">· <?= htmlspecialchars($usuario['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></span></h1>
     </div>
-    <div class="flex items-center gap-5 text-sm text-slate-400">
-      <span><?= htmlspecialchars($usuario['nombre'], ENT_QUOTES, 'UTF-8') ?> <span class="text-slate-600">·</span> <?= htmlspecialchars($usuario['rol'], ENT_QUOTES, 'UTF-8') ?></span>
+    <div class="flex items-center gap-3 sm:gap-5 text-sm text-slate-400 shrink-0">
+      <span class="hidden md:inline"><?= htmlspecialchars($usuario['nombre'], ENT_QUOTES, 'UTF-8') ?> <span class="text-slate-600">·</span> <?= htmlspecialchars($usuario['rol'], ENT_QUOTES, 'UTF-8') ?></span>
       <?php if ($usuario['rol'] === 'ADMIN'): ?>
         <a href="/modules/admin/vehiculos.php" class="hover:text-foreground transition-colors">Administración</a>
       <?php endif; ?>

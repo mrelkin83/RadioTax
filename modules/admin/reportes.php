@@ -130,8 +130,8 @@ function formatoDuracion(?int $segundos): string
 <body class="bg-background text-foreground min-h-screen">
   <?php require __DIR__ . '/_nav.php'; ?>
 
-  <main class="p-6 max-w-7xl mx-auto space-y-8">
-    <form method="get" class="flex items-end gap-3 bg-card border border-border rounded-xl p-6">
+  <main class="p-4 sm:p-6 max-w-7xl mx-auto space-y-8">
+    <form method="get" class="flex flex-wrap items-end gap-3 bg-card border border-border rounded-xl p-6">
       <div>
         <label class="block text-sm text-slate-400 mb-2">Desde</label>
         <input type="date" name="desde" value="<?= htmlspecialchars($desde, ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base font-mono">

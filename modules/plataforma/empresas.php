@@ -92,15 +92,15 @@ $csrf = Auth::tokenCsrf();
 <?php require __DIR__ . '/../_tema.php'; ?>
 </head>
 <body class="bg-background text-foreground min-h-screen">
-  <header class="border-b border-border px-6 py-4 flex items-center justify-between bg-card/90 backdrop-blur">
-    <div class="flex items-center gap-2.5">
-      <svg class="w-5 h-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <header class="border-b border-border px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 bg-card/90 backdrop-blur">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <svg class="w-5 h-5 text-yellow-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 3v18M3 12h18"/>
       </svg>
-      <h1 class="text-base font-semibold">Plataforma <span class="text-slate-500 font-normal">· Empresas (marca blanca)</span></h1>
+      <h1 class="text-base font-semibold truncate">Plataforma <span class="text-slate-500 font-normal">· Empresas (marca blanca)</span></h1>
     </div>
-    <div class="flex items-center gap-5 text-sm text-slate-400">
-      <span><?= htmlspecialchars($usuarioActual['nombre'], ENT_QUOTES, 'UTF-8') ?> <span class="text-slate-600">·</span> SUPERADMIN</span>
+    <div class="flex items-center gap-3 sm:gap-5 text-sm text-slate-400 shrink-0">
+      <span class="hidden md:inline"><?= htmlspecialchars($usuarioActual['nombre'], ENT_QUOTES, 'UTF-8') ?> <span class="text-slate-600">·</span> SUPERADMIN</span>
       <a href="/modules/panel/logout.php" class="text-red-400 hover:text-red-300 transition-colors">Salir</a>
     </div>
   </header>
@@ -151,7 +151,7 @@ $csrf = Auth::tokenCsrf();
             </div>
           </div>
           <div class="flex flex-wrap gap-6 pt-3 border-t border-border">
-            <form method="post" class="flex items-end gap-2">
+            <form method="post" class="flex flex-wrap items-end gap-2">
               <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
               <input type="hidden" name="accion" value="crear_linea">
               <input type="hidden" name="empresa_id" value="<?= (int) $e['id'] ?>">
@@ -162,7 +162,7 @@ $csrf = Auth::tokenCsrf();
               <button type="submit" class="text-sm bg-muted hover:bg-secondary text-slate-100 font-medium px-3.5 py-2 rounded-lg">+ Línea</button>
             </form>
 
-            <form method="post" class="flex items-end gap-2">
+            <form method="post" class="flex flex-wrap items-end gap-2">
               <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
               <input type="hidden" name="accion" value="crear_admin">
               <input type="hidden" name="empresa_id" value="<?= (int) $e['id'] ?>">
