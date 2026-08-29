@@ -48,15 +48,18 @@ Siete commits en el repo local: `d435ecb`, `78b2c56`, `090f2cf`, `f34abab`, `e7c
 ## Próximos pasos (en orden)
 
 1. **Único bloqueante real que queda**: levantar una instancia de Evolution API (Docker) y conectarla a un número de WhatsApp de verdad, apuntando su webhook a `https://TU-DOMINIO/modules/webhook/mensajes.php?token=<el-de-wa_config>`. Con eso, el flujo completo (probado hoy con payloads simulados) funciona con clientes reales sin tocar código.
-2. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
-3. Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
-4. Voz e imagen (STT/TTS/Visión) — credenciales de proveedor aparte, no urgente para el MVP.
+2. Notificar al conductor por WhatsApp al asignar (§10) — hoy solo se notifica al cliente.
+3. Panel administrativo completo (empresas, líneas, agentes de IA) — reportes ya están (ver abajo), falta el resto de Fase 3.
+4. **Sin urgencia**: decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero`.
+5. Voz e imagen (STT/TTS/Visión) — credenciales de proveedor aparte, no urgente para el MVP.
 
 ### Ya cerrado en esta sesión (no repetir)
 
 - Notificar al cliente tras asignar (§7) y mostrar en el panel las conversaciones en `HUMANO_ATENDIENDO` (§8).
 - El ciclo completo de la carrera en el panel: `ASIGNADA→EN_CAMINO→EN_SERVICIO→FINALIZADA` (antes el panel no tenía forma de ir más allá de `ASIGNADA`).
 - **La conversación real con IA**: probada con una clave de Gemini real proporcionada por el usuario — identificación de cliente, consulta de tipos de servicio, y `registrar_solicitud` funcionando de punta a punta. Ver el relato completo arriba.
+
+- **Estadísticas y reportes (§12)**: `modules/admin/reportes.php` — % de automatización, tiempos, servicios por tipo/vehículo/conductor/zona, todo consultas sobre la trazabilidad existente, sin tablas nuevas.
 
 Todo esto probado en navegador real y/o con payloads de webhook reales, no solo escrito. Ver `SPEC.md` para el detalle técnico.
 

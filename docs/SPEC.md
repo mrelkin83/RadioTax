@@ -76,9 +76,20 @@ El usuario proporcionó una API key real de Gemini. Configurada en `wa_config` (
 
 **Con esto, la definición de hecho de Fase 1 (§13) está cumplida**: una carrera real recorrió RECIBIDA→ASIGNADA creada por la IA, y (en una prueba separada) el ciclo completo hasta FINALIZADA funciona. Nota técnica: el modelo `gemini-2.5-flash` que se intentó primero ya no está disponible para keys nuevas — Google recomienda `gemini-3.6-flash`, que es el que quedó configurado. Un error transitorio de "alta demanda" del lado de Google también se manejó con gracia (handoff automático) sin intervención.
 
+## Estadísticas y reportes (§12) — `modules/admin/reportes.php`
+
+Confirmando la premisa del propio system prompt maestro ("si la trazabilidad está bien, los reportes son consultas, no infraestructura nueva"): todo el dashboard es SQL de agregación sobre `tx_carreras` + `tx_carrera_eventos` + `tx_asignaciones`, sin tablas nuevas.
+
+- Filtro por rango de fechas (`desde`/`hasta`, GET, default últimos 30 días).
+- Tarjetas: solicitudes totales, finalizadas, canceladas, no atendidas, en curso, asignaciones rechazadas.
+- **% de automatización**: carreras creadas por la IA vs. por el radiooperador, a partir de `tx_carrera_eventos.actor_tipo` en el evento `CARRERA_RECIBIDA` — la métrica que el §12 marca como la que justifica el proyecto.
+- Tiempo promedio solicitud→asignación (`TIMESTAMPDIFF` entre `creado_en` y `asignada_en`).
+- Servicios por tipo, direcciones de recogida más frecuentes (zonas de demanda), vehículos y conductores con más servicios completados.
+- **Probado en navegador real** con los datos acumulados de toda la sesión (incluida la carrera creada por la IA real): 5 solicitudes, 20% automatización (1 IA / 4 radiooperador) — coincide exactamente con lo esperado. Probado también el estado vacío (rango sin datos): sin división por cero, mensajes claros en vez de tablas rotas.
+
 ### No hecho / fuera de alcance de esta sesión
 
 - **Una instancia real de Evolution API** conectada a un número de WhatsApp de verdad — todo lo anterior se probó con payloads simulados por curl; falta el canal real para hablar con clientes de verdad. El envío de respuestas ya falla con gracia contra una URL falsa (probado); con Evolution real, funciona sin tocar código.
 - Voz e imagen (STT/TTS/Visión) — necesitan credenciales de proveedor aparte.
-- Panel administrativo completo (empresas, líneas, reportes) — Fase 3.
+- Panel administrativo completo (empresas, líneas, agentes de IA) — reportes ya están, falta el resto de Fase 3.
 - Decidir si la generalización de `ToolEngine` se porta de vuelta a `Control_BarMax`/`maytech`/`MisRifas`/`PAduanero` — pendiente, es una decisión aparte de TAXIS.
