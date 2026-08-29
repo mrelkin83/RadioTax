@@ -6,6 +6,7 @@
   const CLAVE_LOCALSTORAGE = 'taxis_sonido_alerta';
   const MODAL_AUTO_CIERRE_MS = 20000;
   const POLL_MS = 4000;
+  const BARRA_OCULTA_MS = 30000;
 
   function sonidoElegido() {
     try {
@@ -43,6 +44,8 @@
   const colaModal = [];
   let modalAbierto = false;
   let cierreAutomaticoTimer = null;
+  let barraOculta = false;
+  let barraOcultaTimer = null;
 
   function crearDom() {
     if (document.getElementById('solicitud-alertas-bar')) return;
@@ -125,6 +128,11 @@
 
     bar.addEventListener('click', () => {
       bar.style.display = 'none';
+      barraOculta = true;
+      if (barraOcultaTimer) clearTimeout(barraOcultaTimer);
+      barraOcultaTimer = setTimeout(() => {
+        barraOculta = false;
+      }, BARRA_OCULTA_MS);
       if (!modalAbierto && colaModal.length > 0) mostrarSiguienteModal();
     });
 
@@ -167,22 +175,26 @@
     }, MODAL_AUTO_CIERRE_MS);
   }
 
-  function actualizarBarra(pendientes) {
+  function actualizarBarra(sinAtender) {
     const bar = document.getElementById('solicitud-alertas-bar');
     if (!bar) return;
-    if (pendientes.length === 0) {
+    if (sinAtender.length === 0) {
       bar.style.display = 'none';
       return;
     }
-    document.getElementById('sa-bar-count').textContent = String(pendientes.length);
-    bar.style.display = 'block';
+    document.getElementById('sa-bar-count').textContent = String(sinAtender.length);
+    if (!barraOculta) bar.style.display = 'block';
   }
 
   const SolicitudAlertas = {
     procesar(lista) {
       crearDom();
       const pendientes = lista || [];
-      actualizarBarra(pendientes);
+      // La barra solo debe insistir con lo que todavía no tiene vehículo
+      // asignado — una vez atendida (asignada), ya no es "nueva" y no debe
+      // seguir apareciendo arriba aunque siga en curso.
+      const sinAtender = pendientes.filter((item) => !item.vehiculo_id);
+      actualizarBarra(sinAtender);
 
       const idsActuales = new Set(pendientes.map((item) => item.id));
 

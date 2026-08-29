@@ -17,7 +17,7 @@ $empresaId = $usuarioActual['empresa_id'];
 EstimadorLiberacion::liberarVencidos($pdo, $empresaId);
 
 $sentencia = $pdo->prepare(
-    "SELECT c.id, c.tipo_servicio, c.recogida_texto, c.destino_texto, c.estado, c.creado_en,
+    "SELECT c.id, c.tipo_servicio, c.recogida_texto, c.destino_texto, c.estado, c.creado_en, c.vehiculo_id,
             cl.nombre AS cliente_nombre, cl.whatsapp AS cliente_whatsapp
      FROM tx_carreras c
      INNER JOIN tx_clientes cl ON cl.id = c.cliente_id
