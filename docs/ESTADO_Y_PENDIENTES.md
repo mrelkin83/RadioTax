@@ -53,7 +53,9 @@ Notificación al conductor por WhatsApp al asignar + respuesta ACEPTO/RECHAZO qu
 
 `modules/plataforma/` (rol nuevo `SUPERADMIN`, sin empresa) + `database/seed_superadmin.php`. Probado en navegador real: se creó "Taxis Del Valle" desde cero, con su línea y su admin, y se confirmó aislamiento total frente a Radio Tax (panel vacío, cero fuga de datos). De paso se encontró y corrigió un "Radio Tax" hardcodeado en varias pantallas — una violación real de la regla de marca blanca que solo se veía operando un segundo tenant de verdad. Ver `SPEC.md` para el detalle completo.
 
-Pendiente dentro de Fase 3 (no bloqueante, menor): reportes exportables (CSV), y que el panel administrativo cubra agentes de IA (`wa_agentes`) desde una pantalla — hoy el motor crea uno por defecto automáticamente y basta para operar, pero no hay UI para personalizarlo.
+Pendiente dentro de Fase 3 (no bloqueante, menor): reportes exportables (CSV).
+
+**Cerrado en esta sesión**: `modules/admin/agente.php` — UI para personalizar el agente de IA (`wa_agentes`: nombre, rol, objetivo, personalidad, género, idioma, instrucciones adicionales, saludo inicial, mensaje fuera de horario, mensaje de error, activo/inactivo). Antes solo existía el agente por defecto que crea el motor (`AgentManager::porDefecto()`), con texto genérico de negocio "producto+cantidad" (p.ej. objetivo: "...mostrar la carta, tomar pedidos...") heredado de `Control_BarMax` — un caso real de fuga de vocabulario retail hacia TAXI, detectado y corregido al construir esta pantalla y probarla contra la empresa real (Radio Tax). El campo `herramientas` (lista blanca de tools) se deja fuera de la UI a propósito: para TAXI, `null` (todas las permitidas) es lo correcto, y exponerlo como JSON editable a mano arriesgaba desactivar por error una herramienta crítica (p.ej. `registrar_solicitud`).
 
 ## Próximos pasos (en orden)
 
