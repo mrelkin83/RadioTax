@@ -130,102 +130,102 @@ function formatoDuracion(?int $segundos): string
 <body class="bg-background text-foreground min-h-screen">
   <?php require __DIR__ . '/_nav.php'; ?>
 
-  <main class="p-6 max-w-5xl mx-auto space-y-6">
-    <form method="get" class="flex items-end gap-2 bg-card border border-border rounded-xl p-4">
+  <main class="p-6 max-w-7xl mx-auto space-y-8">
+    <form method="get" class="flex items-end gap-3 bg-card border border-border rounded-xl p-6">
       <div>
-        <label class="block text-xs text-slate-400 mb-1.5">Desde</label>
-        <input type="date" name="desde" value="<?= htmlspecialchars($desde, ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm font-mono">
+        <label class="block text-sm text-slate-400 mb-2">Desde</label>
+        <input type="date" name="desde" value="<?= htmlspecialchars($desde, ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base font-mono">
       </div>
       <div>
-        <label class="block text-xs text-slate-400 mb-1.5">Hasta</label>
-        <input type="date" name="hasta" value="<?= htmlspecialchars($hasta, ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm font-mono">
+        <label class="block text-sm text-slate-400 mb-2">Hasta</label>
+        <input type="date" name="hasta" value="<?= htmlspecialchars($hasta, ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base font-mono">
       </div>
-      <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-sm font-medium rounded-lg px-4 py-2">Filtrar</button>
+      <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Filtrar</button>
     </form>
 
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">Solicitudes totales</p>
-        <p class="text-2xl font-semibold text-foreground font-mono"><?= $totalSolicitudes ?></p>
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">Solicitudes totales</p>
+        <p class="text-4xl font-semibold text-foreground font-mono mt-1"><?= $totalSolicitudes ?></p>
       </div>
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">Finalizadas</p>
-        <p class="text-2xl font-semibold text-yellow-400 font-mono"><?= $finalizadas ?></p>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">Finalizadas</p>
+        <p class="text-4xl font-semibold text-yellow-400 font-mono mt-1"><?= $finalizadas ?></p>
       </div>
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">Canceladas</p>
-        <p class="text-2xl font-semibold text-red-400 font-mono"><?= $canceladas ?></p>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">Canceladas</p>
+        <p class="text-4xl font-semibold text-red-400 font-mono mt-1"><?= $canceladas ?></p>
       </div>
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">No atendidas</p>
-        <p class="text-2xl font-semibold text-amber-400 font-mono"><?= $noAtendidas ?></p>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">No atendidas</p>
+        <p class="text-4xl font-semibold text-amber-400 font-mono mt-1"><?= $noAtendidas ?></p>
       </div>
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">En curso</p>
-        <p class="text-2xl font-semibold text-sky-400 font-mono"><?= max(0, $enCurso) ?></p>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">En curso</p>
+        <p class="text-4xl font-semibold text-sky-400 font-mono mt-1"><?= max(0, $enCurso) ?></p>
       </div>
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">Asignaciones rechazadas</p>
-        <p class="text-2xl font-semibold text-foreground font-mono"><?= $rechazadas ?></p>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">Asignaciones rechazadas</p>
+        <p class="text-4xl font-semibold text-foreground font-mono mt-1"><?= $rechazadas ?></p>
       </div>
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">% automatización (creadas por IA)</p>
-        <p class="text-2xl font-semibold text-foreground font-mono"><?= $pctAutomatizacion ?>%</p>
-        <p class="text-xs text-slate-500 mt-1"><?= $creadasPorIa ?> IA · <?= $creadasPorOperador ?> radiooperador</p>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">% automatización (creadas por IA)</p>
+        <p class="text-4xl font-semibold text-foreground font-mono mt-1"><?= $pctAutomatizacion ?>%</p>
+        <p class="text-sm text-slate-500 mt-2"><?= $creadasPorIa ?> IA · <?= $creadasPorOperador ?> radiooperador</p>
       </div>
-      <div class="bg-card border border-border rounded-xl p-4">
-        <p class="text-xs text-slate-400">Tiempo promedio hasta asignar</p>
-        <p class="text-2xl font-semibold text-foreground font-mono"><?= htmlspecialchars(formatoDuracion($segAsignacion), ENT_QUOTES, 'UTF-8') ?></p>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <p class="text-sm text-slate-400">Tiempo promedio hasta asignar</p>
+        <p class="text-4xl font-semibold text-foreground font-mono mt-1"><?= htmlspecialchars(formatoDuracion($segAsignacion), ENT_QUOTES, 'UTF-8') ?></p>
       </div>
     </section>
 
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-card border border-border rounded-xl p-4">
-        <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide mb-3">Servicios por tipo</h2>
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-card border border-border rounded-xl p-6">
+        <h2 class="font-semibold text-base text-slate-300 uppercase tracking-wide mb-4">Servicios por tipo</h2>
         <?php if ($porTipo === []): ?>
-          <p class="text-slate-500 text-sm">Sin datos en este rango.</p>
+          <p class="text-slate-500 text-base">Sin datos en este rango.</p>
         <?php endif; ?>
         <?php foreach ($porTipo as $fila): ?>
-          <div class="flex justify-between text-sm py-1.5 border-b border-border last:border-0">
+          <div class="flex justify-between text-base py-2.5 border-b border-border last:border-0">
             <span><?= htmlspecialchars($fila['tipo_servicio'], ENT_QUOTES, 'UTF-8') ?></span>
             <span class="text-slate-400 font-mono"><?= (int) $fila['total'] ?></span>
           </div>
         <?php endforeach; ?>
       </div>
 
-      <div class="bg-card border border-border rounded-xl p-4">
-        <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide mb-3">Direcciones de recogida más frecuentes</h2>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <h2 class="font-semibold text-base text-slate-300 uppercase tracking-wide mb-4">Direcciones de recogida más frecuentes</h2>
         <?php if ($topRecogidas === []): ?>
-          <p class="text-slate-500 text-sm">Sin datos en este rango.</p>
+          <p class="text-slate-500 text-base">Sin datos en este rango.</p>
         <?php endif; ?>
         <?php foreach ($topRecogidas as $fila): ?>
-          <div class="flex justify-between text-sm py-1.5 border-b border-border last:border-0">
+          <div class="flex justify-between text-base py-2.5 border-b border-border last:border-0">
             <span class="truncate pr-2"><?= htmlspecialchars($fila['recogida_texto'], ENT_QUOTES, 'UTF-8') ?></span>
             <span class="text-slate-400 shrink-0 font-mono"><?= (int) $fila['total'] ?></span>
           </div>
         <?php endforeach; ?>
       </div>
 
-      <div class="bg-card border border-border rounded-xl p-4">
-        <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide mb-3">Vehículos con más servicios completados</h2>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <h2 class="font-semibold text-base text-slate-300 uppercase tracking-wide mb-4">Vehículos con más servicios completados</h2>
         <?php if ($topVehiculos === []): ?>
-          <p class="text-slate-500 text-sm">Sin servicios finalizados en este rango.</p>
+          <p class="text-slate-500 text-base">Sin servicios finalizados en este rango.</p>
         <?php endif; ?>
         <?php foreach ($topVehiculos as $fila): ?>
-          <div class="flex justify-between text-sm py-1.5 border-b border-border last:border-0">
+          <div class="flex justify-between text-base py-2.5 border-b border-border last:border-0">
             <span><?= htmlspecialchars($fila['numero_interno'], ENT_QUOTES, 'UTF-8') ?> · <span class="font-mono"><?= htmlspecialchars($fila['placa'], ENT_QUOTES, 'UTF-8') ?></span></span>
             <span class="text-slate-400 font-mono"><?= (int) $fila['total'] ?></span>
           </div>
         <?php endforeach; ?>
       </div>
 
-      <div class="bg-card border border-border rounded-xl p-4">
-        <h2 class="font-semibold text-sm text-slate-300 uppercase tracking-wide mb-3">Conductores con más servicios completados</h2>
+      <div class="bg-card border border-border rounded-xl p-6">
+        <h2 class="font-semibold text-base text-slate-300 uppercase tracking-wide mb-4">Conductores con más servicios completados</h2>
         <?php if ($topConductores === []): ?>
-          <p class="text-slate-500 text-sm">Sin servicios finalizados en este rango.</p>
+          <p class="text-slate-500 text-base">Sin servicios finalizados en este rango.</p>
         <?php endif; ?>
         <?php foreach ($topConductores as $fila): ?>
-          <div class="flex justify-between text-sm py-1.5 border-b border-border last:border-0">
+          <div class="flex justify-between text-base py-2.5 border-b border-border last:border-0">
             <span><?= htmlspecialchars($fila['nombre'], ENT_QUOTES, 'UTF-8') ?></span>
             <span class="text-slate-400 font-mono"><?= (int) $fila['total'] ?></span>
           </div>

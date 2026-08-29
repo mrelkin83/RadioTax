@@ -57,76 +57,76 @@ $activo = 'whatsapp';
 <body class="bg-background text-foreground min-h-screen">
   <?php require __DIR__ . '/_nav.php'; ?>
 
-  <main class="p-6 max-w-2xl mx-auto space-y-6">
+  <main class="p-6 max-w-3xl mx-auto space-y-8">
     <?php if ($error !== null): ?>
-      <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-sm rounded-lg px-3 py-2" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+      <p class="bg-destructive/10 border border-destructive/30 text-red-300 text-base rounded-lg px-4 py-3" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
     <?php if (isset($_GET['guardado'])): ?>
-      <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-sm rounded-lg px-3 py-2">Configuración guardada.</p>
+      <p class="bg-accent/10 border border-accent/30 text-emerald-300 text-base rounded-lg px-4 py-3">Configuración guardada.</p>
     <?php endif; ?>
 
     <?php if ($tokenNuevo !== null): ?>
-      <div class="bg-warning/10 border border-warning/30 text-amber-200 text-sm rounded-xl p-4 space-y-2">
+      <div class="bg-warning/10 border border-warning/30 text-amber-200 text-base rounded-xl p-6 space-y-3">
         <p class="font-medium">Token del webhook generado — guárdalo ahora, no se vuelve a mostrar:</p>
-        <code class="block bg-muted border border-border rounded-lg p-2 break-all font-mono text-xs"><?= htmlspecialchars($tokenNuevo, ENT_QUOTES, 'UTF-8') ?></code>
+        <code class="block bg-muted border border-border rounded-lg p-3 break-all font-mono text-sm"><?= htmlspecialchars($tokenNuevo, ENT_QUOTES, 'UTF-8') ?></code>
         <p>URL del webhook para configurar en Evolution API:</p>
-        <code class="block bg-muted border border-border rounded-lg p-2 break-all font-mono text-xs">https://TU-DOMINIO/modules/webhook/mensajes.php?token=<?= htmlspecialchars($tokenNuevo, ENT_QUOTES, 'UTF-8') ?></code>
+        <code class="block bg-muted border border-border rounded-lg p-3 break-all font-mono text-sm">https://TU-DOMINIO/modules/webhook/mensajes.php?token=<?= htmlspecialchars($tokenNuevo, ENT_QUOTES, 'UTF-8') ?></code>
       </div>
     <?php endif; ?>
 
-    <section class="bg-card border border-border rounded-xl p-4">
-      <h2 class="font-semibold mb-1">Token del webhook</h2>
-      <p class="text-xs text-slate-400 mb-3">
+    <section class="bg-card border border-border rounded-xl p-6">
+      <h2 class="font-semibold text-lg mb-2">Token del webhook</h2>
+      <p class="text-sm text-slate-400 mb-4">
         <?= !empty($cfg['webhook_token_hash']) || $tokenNuevo !== null ? 'Ya hay uno configurado.' : 'Todavía no se ha generado.' ?>
         Regenerarlo invalida el anterior — hay que actualizar la URL en Evolution API.
       </p>
       <form method="post">
         <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
         <input type="hidden" name="accion" value="regenerar_token">
-        <button type="submit" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-sm font-medium rounded-lg px-4 py-2">
+        <button type="submit" class="bg-warning/15 hover:bg-warning/25 text-amber-200 text-base font-medium rounded-lg px-5 py-2.5">
           Generar nuevo token
         </button>
       </form>
     </section>
 
-    <form method="post" class="bg-card border border-border rounded-xl p-4 space-y-5">
+    <form method="post" class="bg-card border border-border rounded-xl p-6 space-y-6">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
       <input type="hidden" name="accion" value="guardar">
 
-      <label class="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="activo" <?= !empty($cfg['activo']) ? 'checked' : '' ?> class="accent-accent w-4 h-4">
+      <label class="flex items-center gap-3 text-base">
+        <input type="checkbox" name="activo" <?= !empty($cfg['activo']) ? 'checked' : '' ?> class="accent-accent w-5 h-5">
         Motor encendido (si está apagado, los mensajes se reciben y se ignoran)
       </label>
 
       <div>
-        <h3 class="text-sm font-semibold text-slate-300 mb-2">Evolution API</h3>
-        <div class="grid grid-cols-2 gap-2">
-          <input name="evolution_url" placeholder="URL (ej. http://localhost:8080)" value="<?= htmlspecialchars((string) ($cfg['evolution_url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm">
-          <input name="evolution_instancia" placeholder="Nombre de la instancia" value="<?= htmlspecialchars((string) ($cfg['evolution_instancia'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm">
-          <input name="numero_whatsapp" placeholder="Número de WhatsApp" value="<?= htmlspecialchars((string) ($cfg['numero_whatsapp'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm font-mono">
-          <input name="evolution_apikey" type="password" placeholder="<?= !empty($cfg['evolution_apikey_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm">
+        <h3 class="text-base font-semibold text-slate-300 mb-3">Evolution API</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <input name="evolution_url" placeholder="URL (ej. http://localhost:8080)" value="<?= htmlspecialchars((string) ($cfg['evolution_url'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+          <input name="evolution_instancia" placeholder="Nombre de la instancia" value="<?= htmlspecialchars((string) ($cfg['evolution_instancia'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
+          <input name="numero_whatsapp" placeholder="Número de WhatsApp" value="<?= htmlspecialchars((string) ($cfg['numero_whatsapp'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
+          <input name="evolution_apikey" type="password" placeholder="<?= !empty($cfg['evolution_apikey_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
         </div>
       </div>
 
       <div>
-        <h3 class="text-sm font-semibold text-slate-300 mb-2">Proveedor de IA</h3>
-        <div class="grid grid-cols-2 gap-2">
-          <select name="llm_proveedor" class="rounded-lg bg-muted border border-border text-foreground px-3 py-2 text-sm">
+        <h3 class="text-base font-semibold text-slate-300 mb-3">Proveedor de IA</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <select name="llm_proveedor" class="rounded-lg bg-muted border border-border text-foreground px-4 py-2.5 text-base">
             <?php foreach (['' => 'Selecciona…', 'anthropic' => 'Anthropic', 'gemini' => 'Gemini', 'openai' => 'OpenAI / compatible'] as $valor => $etiqueta): ?>
               <option value="<?= htmlspecialchars($valor, ENT_QUOTES, 'UTF-8') ?>" <?= ($cfg['llm_proveedor'] ?? '') === $valor ? 'selected' : '' ?>><?= htmlspecialchars($etiqueta, ENT_QUOTES, 'UTF-8') ?></option>
             <?php endforeach; ?>
           </select>
-          <input name="llm_modelo" placeholder="Modelo (ej. claude-3-5-haiku-20241022)" value="<?= htmlspecialchars((string) ($cfg['llm_modelo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm font-mono">
-          <input name="llm_api_key" type="password" placeholder="<?= !empty($cfg['llm_api_key_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm">
+          <input name="llm_modelo" placeholder="Modelo (ej. claude-3-5-haiku-20241022)" value="<?= htmlspecialchars((string) ($cfg['llm_modelo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
+          <input name="llm_api_key" type="password" placeholder="<?= !empty($cfg['llm_api_key_configurado']) ? 'API Key (ya hay una guardada)' : 'API Key' ?>" class="col-span-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base">
         </div>
       </div>
 
       <div>
-        <h3 class="text-sm font-semibold text-slate-300 mb-2">Aviso al radiooperador</h3>
-        <input name="handoff_numero" placeholder="Número que recibe el aviso cuando se transfiere a un humano" value="<?= htmlspecialchars((string) ($cfg['handoff_numero'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="w-full rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-3 py-2 text-sm font-mono">
+        <h3 class="text-base font-semibold text-slate-300 mb-3">Aviso al radiooperador</h3>
+        <input name="handoff_numero" placeholder="Número que recibe el aviso cuando se transfiere a un humano" value="<?= htmlspecialchars((string) ($cfg['handoff_numero'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="w-full rounded-lg bg-muted border border-border text-foreground placeholder:text-slate-500 px-4 py-2.5 text-base font-mono">
       </div>
 
-      <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-sm font-medium rounded-lg px-4 py-2">Guardar</button>
+      <button type="submit" class="bg-accent hover:bg-accent-hover text-on-accent text-base font-medium rounded-lg px-5 py-2.5">Guardar</button>
     </form>
   </main>
 </body>

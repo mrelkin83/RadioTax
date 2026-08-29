@@ -5,10 +5,12 @@ $tabs = ['vehiculos' => 'Vehículos', 'conductores' => 'Conductores', 'whatsapp'
 <header class="border-b border-border px-6 py-4 flex items-center justify-between bg-card/90 backdrop-blur">
   <div class="flex items-center gap-8">
     <h1 class="text-base font-semibold">Administración <span class="text-slate-500 font-normal">· <?= htmlspecialchars($usuarioActual['empresa_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?></span></h1>
-    <nav class="flex gap-5 text-sm">
+    <nav class="flex gap-2 text-sm">
       <?php foreach ($tabs as $clave => $etiqueta): ?>
         <a href="/modules/admin/<?= htmlspecialchars($clave, ENT_QUOTES, 'UTF-8') ?>.php"
-           class="<?= $activo === $clave ? 'text-yellow-400 font-medium' : 'text-slate-400 hover:text-slate-200 transition-colors' ?>">
+           class="<?= $activo === $clave
+             ? 'bg-accent text-on-accent font-medium px-4 py-2 rounded-lg'
+             : 'bg-muted hover:bg-secondary text-slate-300 px-4 py-2 rounded-lg transition-colors' ?>">
           <?= htmlspecialchars($etiqueta, ENT_QUOTES, 'UTF-8') ?>
         </a>
       <?php endforeach; ?>
